@@ -23,7 +23,9 @@ django-filter==24.3
 django-leaflet==0.31.0
 djangorestframework==3.15.2
 djangorestframework-gis==1.1
+dotenv==0.0.5  # Added dotenv here
 GDAL==3.4.1
+gunicorn==21.0.2
 httplib2==0.20.2
 hyperlink==21.0.0
 idna==3.3
