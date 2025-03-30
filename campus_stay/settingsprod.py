@@ -37,7 +37,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'leaflet',
-    # Add your project-specific apps here
+    'users',
+    'properties',
+    'universities',
+   
 ]
 
 MIDDLEWARE = [
