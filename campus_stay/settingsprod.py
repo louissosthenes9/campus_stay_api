@@ -1,5 +1,5 @@
 """
-Django production settings for campus_stay project.
+Django production settings for campus_stay project with Supabase.
 """
 
 from pathlib import Path
@@ -72,15 +72,18 @@ TEMPLATES = [
 WSGI_APPLICATION = 'campus_stay.wsgi.application'
 
 # Database
-# Using PostgreSQL for production
+# Using Supabase PostgreSQL connection
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER'),
-        'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='5432'),
+        'ENGINE': 'django.contrib.gis.db.backends.postgis' if env.bool('USE_GIS', default=True) else 'django.db.backends.postgresql',
+        'NAME': env('SUPABASE_DB_NAME'),
+        'USER': env('SUPABASE_DB_USER'),
+        'PASSWORD': env('SUPABASE_DB_PASSWORD'),
+        'HOST': env('SUPABASE_DB_HOST'),
+        'PORT': env('SUPABASE_DB_PORT', default='5432'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
     }
 }
 
@@ -138,18 +141,6 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 CORS_ALLOW_CREDENTIALS = True
 
-# GDAL settings for GIS functionality
-GDAL_LIBRARY_PATH = env('GDAL_LIBRARY_PATH', default=None)
-GEOS_LIBRARY_PATH = env('GEOS_LIBRARY_PATH', default=None)
-
-# Leaflet configuration
-LEAFLET_CONFIG = {
-    'DEFAULT_CENTER': (0, 0),
-    'DEFAULT_ZOOM': 2,
-    'MIN_ZOOM': 1,
-    'MAX_ZOOM': 18,
-}
-
 # Security settings
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
@@ -175,10 +166,15 @@ LOGGING = {
             'filename': os.path.join(BASE_DIR, 'logs/error.log'),
             'formatter': 'verbose',
         },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
+            'handlers': ['file', 'console'],
             'level': 'ERROR',
             'propagate': True,
         },
