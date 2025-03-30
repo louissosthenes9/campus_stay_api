@@ -8,7 +8,7 @@ djangorestframework==3.15.2     # REST API framework
 djangorestframework-gis==1.1    # GIS support for REST framework
 djangorestframework-simplejwt==5.3.1  # JWT authentication for DRF
 GDAL==3.4.1                     # Geospatial data abstraction library
-gunicorn==21.0.2                # WSGI server for deployment
+gunicorn==21.2.0                # WSGI server for deployment
 numpy==1.21.5                   # Machine learning and numerical operations
 pillow==11.1.0                  # Image processing (if needed for GIS/ML)
 psycopg2-binary==2.9.10         # PostgreSQL adapter (common with GIS)
