@@ -40,6 +40,9 @@ INSTALLED_APPS = [
     'users',
     'properties',
     'universities',
+    'user_messages',
+    'reviews',
+    'favourites',
 ]
 
 MIDDLEWARE = [

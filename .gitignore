@@ -53,7 +53,7 @@ _venv/
 .env.production.local
 
 # Django specific
-*.log
+#*.log
 *.pot
 *.pyc
 __pycache__/
