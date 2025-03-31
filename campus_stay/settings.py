@@ -83,11 +83,14 @@ DATABASES = {
         'PASSWORD': env('SUPABASE_DB_PASSWORD'),
         'HOST': env('SUPABASE_DB_HOST'),
         'PORT': env('SUPABASE_DB_PORT', default='5432'),
+        'POOL_MODE': env('SUPABASE_DB_POOL_MODE', default='threaded'),
         'OPTIONS': {
             'sslmode': 'require',
         },
     }
 }
+
+AUTH_USER_MODEL = 'users.User'
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

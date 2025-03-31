@@ -22,6 +22,7 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = False
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
+AUTH_USER_MODEL = 'users.User'
 
 # Application definition
 INSTALLED_APPS = [
@@ -84,6 +85,7 @@ DATABASES = {
         'PASSWORD': env('SUPABASE_DB_PASSWORD'),
         'HOST': env('SUPABASE_DB_HOST'),
         'PORT': env('SUPABASE_DB_PORT', default='5432'),
+        'POOL_MODE': env('SUPABASE_DB_POOL_MODE', default='threaded'),
         'OPTIONS': {
             'sslmode': 'require',
         },
