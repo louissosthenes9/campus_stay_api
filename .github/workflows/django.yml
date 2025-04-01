@@ -5,21 +5,40 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.8,3.9]
+        python-version: ["3.8", "3.9", "3.11"]  # Tested Python versions
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Run tests for users module
-      run: |
-        python manage.py test users
+      - uses: actions/checkout@v3  # Check out repository code
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies  # Faster builds via caching
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install pytest (optional)  # Only needed if using pytest
+        run: |
+          pip install pytest pytest-django
+
+      - name: Run Django tests (manage.py)  # Default Django test runner
+        run: |
+          python manage.py test users
+
+      - name: Run tests with pytest (optional)  # Parallel step for pytest
+        if: success()  # Runs only if previous steps pass
+        run: |
+          pytest users/tests/  # Adjust path to your tests
