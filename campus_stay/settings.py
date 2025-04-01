@@ -91,9 +91,6 @@ DATABASES = {
         'OPTIONS': {
             'sslmode': 'require',
         },
-        'TEST': {   # For running tests
-            'NAME': env('SUPABASE_TEST_DB_NAME'),
-        }
     }
 }
 
