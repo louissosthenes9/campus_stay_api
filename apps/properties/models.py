@@ -14,7 +14,7 @@ class Properties(models.Model):
     )
     title = models.CharField(max_length=100) 
     description = models.TextField()
-    broker=models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='properties')
+    broker=models.ForeignKey('apps.users.User', on_delete=models.CASCADE, related_name='properties')
     property_type = models.CharField(max_length=20, choices=PROPERTY_TYPE_CHOICES)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     bedrooms = models.PositiveIntegerField(blank=True,null=True)
@@ -51,7 +51,7 @@ class PropertyMedia(models.Model):
         ('image', 'Image'),
         ('video', 'Video'),
     )
-    property = models.ForeignKey('properties.Properties', on_delete=models.CASCADE, related_name='media')
+    property = models.ForeignKey('apps.properties.Properties', on_delete=models.CASCADE, related_name='media')
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default='image')
     file = models.FileField(upload_to='properties/')
     media_hash = models.CharField(max_length=100, blank=True, null=True)    
@@ -82,8 +82,8 @@ class Amenity(models.Model):
 
 
 class PropertyAmenity(models.Model):
-    property = models.ForeignKey('properties.Properties', on_delete=models.CASCADE, related_name='amenities')
-    amenity = models.ForeignKey('properties.Amenity', on_delete=models.CASCADE, related_name='properties')
+    property = models.ForeignKey('apps.properties.Properties', on_delete=models.CASCADE, related_name='amenities')
+    amenity = models.ForeignKey('apps.properties.Amenity', on_delete=models.CASCADE, related_name='properties')
 
     def __str__(self):
         return f"{self.property.title} - {self.amenity.name}"
@@ -115,8 +115,8 @@ class NearByPlaces(models.Model):
         return f"{self.name} ({self.get_place_type_display()})"
     
 class PropertyNearByPlaces(models.Model):
-    property = models.ForeignKey('properties.Properties', on_delete=models.CASCADE, related_name='nearby_places')
-    place = models.ForeignKey('properties.NearByPlaces', on_delete=models.CASCADE, related_name='properties')
+    property = models.ForeignKey('apps.properties.Properties', on_delete=models.CASCADE, related_name='nearby_places')
+    place = models.ForeignKey('apps.properties.NearByPlaces', on_delete=models.CASCADE, related_name='properties')
     distance = models.DecimalField(max_digits=5, decimal_places=2, help_text="Distance in kilometers")
     walking_time = models.PositiveIntegerField(help_text="Walking time in minutes")
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from universities.models import University, Campus
+from apps.universities.models import University, Campus
 
 class CampusSerializer(serializers.ModelSerializer):
     latitude = serializers.FloatField(source='location.y', read_only=True)

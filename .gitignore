@@ -51,7 +51,8 @@ _venv/
 .env.test.local
 .env.production
 .env.production.local
-
+*.iml
+*.xml
 # Django specific
 #*.log
 *.pot

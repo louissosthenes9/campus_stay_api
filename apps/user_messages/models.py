@@ -3,9 +3,9 @@ from django.db import models
 # Create your models here.
 
 class Conversation(models.Model):
-    property = models.ForeignKey('properties.Properties', on_delete=models.CASCADE, related_name='user_messages')
-    student = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='student_user_messages')
-    broker = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='broker_user_messages')
+    property = models.ForeignKey('apps.properties.Properties', on_delete=models.CASCADE, related_name='user_messages')
+    student = models.ForeignKey('apps.users.User', on_delete=models.CASCADE, related_name='student_user_messages')
+    broker = models.ForeignKey('apps.users.User', on_delete=models.CASCADE, related_name='broker_user_messages')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -18,7 +18,7 @@ class Conversation(models.Model):
 
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='sent_messages')
+    sender = models.ForeignKey('apps.users.User', on_delete=models.CASCADE, related_name='sent_messages')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
