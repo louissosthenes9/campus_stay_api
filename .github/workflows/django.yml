@@ -41,4 +41,4 @@ jobs:
       - name: Run tests with pytest (optional)  # Parallel step for pytest
         if: success()  # Runs only if previous steps pass
         run: |
-          pytest users/tests/  # Adjust path to your tests
+          pytest users/tests.py  # Adjust path to your tests
