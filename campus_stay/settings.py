@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.gis',  # For GDAL/GIS functionality
     'rest_framework',
     'rest_framework_gis',
+    'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
     'leaflet',
@@ -90,6 +91,9 @@ DATABASES = {
         'OPTIONS': {
             'sslmode': 'require',
         },
+        'TEST': {   # For running tests
+            'NAME': env('SUPABASE_TEST_DB_NAME'),
+        }
     }
 }
 
@@ -137,6 +141,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -148,6 +153,8 @@ REST_FRAMEWORK = {
 # CORS settings
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 CORS_ALLOW_CREDENTIALS = True
+
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
 
 # Security settings
 SECURE_SSL_REDIRECT = True
@@ -188,3 +195,13 @@ LOGGING = {
         },
     },
 }
+
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')

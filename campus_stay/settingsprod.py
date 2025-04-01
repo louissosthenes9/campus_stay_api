@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.gis',
     'rest_framework',
     'rest_framework_gis',
+    'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
     'leaflet',
@@ -93,6 +94,9 @@ DATABASES = {
         'OPTIONS': {
             'sslmode': 'require',
         },
+         'TEST': {   # For running tests
+            'NAME': env('SUPABASE_TEST_DB_NAME'),
+        }
     }
 }
 
@@ -138,6 +142,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',

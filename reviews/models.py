@@ -18,4 +18,4 @@ class BrokerReview(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"Review by {self.reviewer.full_name} for {self.broker.username}"
+        return f"Review by {self.reviewer.full_name} for {self.broker.full_name}"
