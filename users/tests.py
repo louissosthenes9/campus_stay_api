@@ -3,8 +3,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth import get_user_model
-from apps.users.api.views import UserViewSet
-from apps.users.models import StudentProfile, BrokerProfile
+from users.api.views import UserViewSet
+from users.models import StudentProfile, BrokerProfile
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 

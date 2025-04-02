@@ -37,7 +37,7 @@ class User(AbstractUser):
 
 class StudentProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
-    university = models.ForeignKey('apps.universities.University', on_delete=models.CASCADE)
+    university = models.ForeignKey('universities.University', on_delete=models.CASCADE)
     course = models.CharField(max_length=255)
     year = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -7,7 +7,7 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from .serializers import UserSerializer, StudentProfileSerializer, BrokerProfileSerializer
-from apps.users.models import StudentProfile, BrokerProfile
+from users.models import StudentProfile, BrokerProfile
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.tokens import default_token_generator

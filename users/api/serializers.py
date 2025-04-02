@@ -1,8 +1,8 @@
 
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from apps.users.models import StudentProfile, BrokerProfile
-from apps.universities import University
+from users.models import StudentProfile, BrokerProfile
+from universities.models import University
 
 User = get_user_model()
 

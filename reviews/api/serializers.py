@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.reviews.models import PropertyReview, BrokerReview
+from reviews.models import PropertyReview, BrokerReview
 
 class PropertyReviewSerializer(serializers.ModelSerializer):
     reviewer_name = serializers.SerializerMethodField()
