@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.gis.db.models.functions import Distance
+from django.db.models import F
 from properties.models import Properties, PropertyAmenity,PropertyMedia, PropertyNearByPlaces,NearByPlaces,Amenity
 from django.contrib.gis.geos import Point
 
