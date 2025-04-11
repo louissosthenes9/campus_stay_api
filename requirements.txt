@@ -17,4 +17,5 @@ requests==2.25.1                # For making HTTP requests
 sqlparse==0.4.2                 # Dependency for Django
 typing_extensions==4.12.2       # Type hints support
 urllib3==1.26.5                 # HTTP client for requests
-cryptography==3.4.8             # For secure token handling and encryption
+cryptography==3.4.8             # For secure token handling and encryptiongoogle-auth==2.38.0
+google-auth==2.38.0

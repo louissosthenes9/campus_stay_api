@@ -1,16 +1,16 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.utils.encoding import force_bytes, force_str
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from .serializers import UserSerializer, StudentProfileSerializer, BrokerProfileSerializer
 from users.models import StudentProfile, BrokerProfile
-from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 import logging
+from django.contrib.auth import authenticate
+from rest_framework.views import APIView
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     
     def get_permissions(self):
-        if self.action in ['create', 'verify_email']:
+        if self.action in ['create', 'login', 'google_login']:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
     
@@ -38,7 +38,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     logger.error(f"User validation failed: {user_serializer.errors}")
                     return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                 
-                # Save the user
+                # Save the user - note: removed email verification
                 user = user_serializer.save()
                 logger.info(f"User created successfully: {user.username} ({user.pk})")
                 
@@ -49,14 +49,6 @@ class UserViewSet(viewsets.ModelViewSet):
                     self._create_broker_profile(request, user)
                 else:
                     logger.warning(f"Unknown user_type: {user.user_type}")
-                
-                # Send verification email
-                try:
-                    self._send_verification_email(user)
-                    logger.info(f"Verification email sent to: {user.email}")
-                except Exception as e:
-                    logger.error(f"Failed to send verification email: {str(e)}")
-                    # Continue despite email sending failure
                 
                 # Generate tokens
                 refresh = RefreshToken.for_user(user)
@@ -89,7 +81,6 @@ class UserViewSet(viewsets.ModelViewSet):
                 student_data['university'] = university.id
             except University.DoesNotExist:
                 logger.warning(f"University with name '{student_data['university_name']}' not found")
-                # Could create the university here if required
         
         student_serializer = StudentProfileSerializer(data=student_data)
         if student_serializer.is_valid():
@@ -111,20 +102,6 @@ class UserViewSet(viewsets.ModelViewSet):
         else:
             logger.error(f"Broker profile validation failed: {broker_serializer.errors}")
             raise ValueError(f"Invalid broker profile data: {broker_serializer.errors}")
-    
-    def _send_verification_email(self, user):
-        """Send an email verification link to the user."""
-        token = default_token_generator.make_token(user)
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        verification_url = f"{settings.FRONTEND_URL}/verify-email/{uid}/{token}/"
-        
-        send_mail(
-            subject="Verify your email address",
-            message=f"Please click the link to verify your email: {verification_url}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
     
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -154,71 +131,119 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(data)
     
     @action(detail=False, methods=['post'])
-    def verify_email(self, request):
-        """Verify a user's email address using the token from the verification link."""
-        uid = request.data.get('uid')
-        token = request.data.get('token')
+    def login(self, request):
+        """Traditional username/password login"""
+        username = request.data.get('username')
+        password = request.data.get('password')
         
-        if not uid or not token:
+        if not username or not password:
             return Response(
-                {'detail': 'Both uid and token are required'}, 
+                {'detail': 'Both username and password are required'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        try:
-            uid = force_str(urlsafe_base64_decode(uid))
-            user = User.objects.get(pk=uid)
-            logger.info(f"Email verification attempt for user: {user.pk}")
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist) as e:
-            logger.warning(f"Invalid uid in email verification: {uid}, Error: {str(e)}")
-            user = None
+        user = authenticate(username=username, password=password)
         
-        if user is not None and default_token_generator.check_token(user, token):
-            if user.email_verified:
-                logger.info(f"User {user.pk} email already verified")
-                return Response(
-                    {'detail': 'Email already verified'}, 
-                    status=status.HTTP_200_OK
-                )
-                
-            user.email_verified = True
-            user.save()
-            logger.info(f"User {user.pk} email verified successfully")
+        if user is None:
             return Response(
-                {'detail': 'Email verified successfully'}, 
-                status=status.HTTP_200_OK
-            )
-        
-        logger.warning(f"Invalid verification token for user: {uid if user else 'unknown'}")
-        return Response(
-            {'detail': 'Invalid verification link'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    @action(detail=False, methods=['post'])
-    def resend_verification(self, request):
-        """Resend the verification email to the authenticated user."""
-        if not request.user.is_authenticated:
-            return Response(
-                {"detail": "Authentication required"}, 
+                {'detail': 'Invalid credentials'}, 
                 status=status.HTTP_401_UNAUTHORIZED
             )
-            
-        if request.user.email_verified:
+        
+        refresh = RefreshToken.for_user(user)
+        
+        serializer = self.get_serializer(user)
+        
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': serializer.data
+        })
+    
+    @action(detail=False, methods=['post'])
+    def google_login(self, request):
+        """Login or register with Google OAuth"""
+        token = request.data.get('token')
+        
+        if not token:
             return Response(
-                {"detail": "Email already verified"}, 
+                {'detail': 'Google token is required'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
+        
         try:
-            self._send_verification_email(request.user)
+            # Verify the token with Google
+            idinfo = id_token.verify_oauth2_token(
+                token, 
+                requests.Request(), 
+                settings.GOOGLE_OAUTH2_CLIENT_ID
+            )
+            
+            # Extract Google user info
+            google_user_id = idinfo['sub']
+            email = idinfo.get('email')
+            first_name = idinfo.get('given_name', '')
+            last_name = idinfo.get('family_name', '')
+            
+            # Check if user exists
+            try:
+                user = User.objects.get(email=email)
+                logger.info(f"Google login: Existing user found for email {email}")
+                
+                # Update user info if needed
+                if not user.google_id:
+                    user.google_id = google_user_id
+                    user.save()
+                    
+            except User.DoesNotExist:
+                # Create a new user
+                username = email.split('@')[0]
+                base_username = username
+                counter = 1
+                
+                # Ensure username is unique
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    google_id=google_user_id,
+                    # Set a random password since user will login via Google
+                    password=User.objects.make_random_password()
+                )
+                logger.info(f"Google login: Created new user for email {email}")
+                
+                # Set default user type - adjust as needed
+                user.user_type = 'student'  # or get from request
+                user.save()
+                
+                # You might want to create default profiles here
+            
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            serializer = self.get_serializer(user)
+            
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': serializer.data,
+                'is_new_user': not user.last_login,  # Check if new user
+            })
+            
+        except ValueError as e:
+            # Invalid token
+            logger.error(f"Google login failed: {str(e)}")
             return Response(
-                {"detail": "Verification email sent successfully"}, 
-                status=status.HTTP_200_OK
+                {'detail': 'Invalid Google token'}, 
+                status=status.HTTP_401_UNAUTHORIZED
             )
         except Exception as e:
-            logger.error(f"Failed to resend verification email: {str(e)}")
+            logger.error(f"Unexpected error during Google login: {str(e)}")
             return Response(
-                {"detail": "Failed to send verification email"}, 
+                {'detail': 'Authentication failed'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

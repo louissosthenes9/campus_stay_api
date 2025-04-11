@@ -15,8 +15,6 @@ class User(AbstractUser):
     )
     user_type = models.CharField(choices=USER_TYPE_CHOICES, max_length=10)
     profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
-    email_verified = models.BooleanField(default=False)
-
     groups = models.ManyToManyField(
         Group,
         related_name="custom_user_set",  
