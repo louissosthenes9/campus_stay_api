@@ -19,3 +19,5 @@ typing_extensions==4.12.2       # Type hints support
 urllib3==1.26.5                 # HTTP client for requests
 cryptography==3.4.8             # For secure token handling and encryptiongoogle-auth==2.38.0
 google-auth==2.38.0
+django-allauth==65.7.0
+django-rest-auth==0.9.5
