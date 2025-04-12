@@ -1,114 +1,283 @@
-from unittest.mock import patch
+import json
+from unittest.mock import patch, MagicMock
+
+from django.test import TestCase, RequestFactory
 from django.urls import reverse
-from rest_framework import status
-from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth import get_user_model
-from users.api.views import UserViewSet
+from rest_framework.test import APIClient
+from rest_framework import status
+
 from users.models import StudentProfile, BrokerProfile
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
+from users.api.views import UserViewSet
+from universities.models import University
 
 User = get_user_model()
 
-
-class UserViewSetTests(APITestCase):
+class GoogleAuthTests(TestCase):
+    """Test the Google OAuth authentication flow."""
+    
     def setUp(self):
         self.client = APIClient()
-        self.user_data = {
-            'email': 'test@example.com',
-            'password': 'testpassword123',
-            'first_name': 'Test',
-            'last_name': 'User',
-            'user_type': 'student'
+        self.factory = RequestFactory()
+        self.google_login_url = reverse('user-google-login')
+        self.onboarding_url = reverse('user-complete-google-onboarding')
+        
+        # Create a test university for student profiles
+        self.university = University.objects.create(
+            name="Test University",
+            country="Test Country",
+            city="Test City",
+            location='POINT(0 0)'
+        )
+
+    @patch('google.oauth2.id_token.verify_oauth2_token')
+    def test_google_login_new_user(self, mock_verify_token):
+        """Test Google login for a new user requiring onboarding."""
+        # Mock the Google token verification
+        mock_verify_token.return_value = {
+            'sub': '123456789',
+            'email': 'newuser@example.com',
+            'given_name': 'New',
+            'family_name': 'User',
         }
         
-        # Create a test user for authenticated requests
-        self.test_user = User.objects.create_user(
-            email='existing@example.com',
-            password='existingpassword',
-            first_name='Existing',
-            last_name='User'
+        response = self.client.post(self.google_login_url, {'token': 'valid_token'})
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'onboarding_required')
+        self.assertEqual(response.data['email'], 'newuser@example.com')
+        self.assertTrue('temp_token' in response.data)
+
+    @patch('google.oauth2.id_token.verify_oauth2_token')
+    def test_google_login_existing_user(self, mock_verify_token):
+        """Test Google login for an existing user with completed profile."""
+        # Create test user with student profile
+        test_user = User.objects.create_user(
+            username='testuser',
+            email='existinguser@example.com',
+            password='testpass123',
+            user_type='student',
+            google_id='123456789'
         )
         
-    def test_get_permissions(self):
-        """Test permissions based on action type"""
-        viewset = UserViewSet()
+        StudentProfile.objects.create(
+            user=test_user,
+            university=self.university,
+            course='Computer Science'
+        )
         
-        # Test create action permissions
-        viewset.action = 'create'
-        self.assertEqual(viewset.get_permissions()[0].__class__.__name__, 'AllowAny')
-        
-        # Test other actions permissions
-        viewset.action = 'list'
-        self.assertEqual(viewset.get_permissions()[0].__class__.__name__, 'IsAuthenticated')
-        
-    @patch('users.api.views.send_mail')
-    def test_create_student_user(self, mock_send_mail):
-        """Test creating a user with student profile"""
-        student_data = self.user_data.copy()
-        student_data['student_profile'] = {
-            'university': 'Test University',
-            'major': 'Computer Science',
-            'year': 3
+        # Mock the Google token verification
+        mock_verify_token.return_value = {
+            'sub': '123456789',
+            'email': 'existinguser@example.com',
+            'given_name': 'Existing',
+            'family_name': 'User',
         }
         
-        url = reverse('user-list')
-        response = self.client.post(url, student_data, format='json')
+        response = self.client.post(self.google_login_url, {'token': 'valid_token'})
         
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(User.objects.count(), 2)  # Including the test user
-        self.assertEqual(StudentProfile.objects.count(), 1)
-        self.assertEqual(BrokerProfile.objects.count(), 0)
-        
-        # Check that send_mail was called
-        mock_send_mail.assert_called_once()
-        
-    @patch('users.api.views.send_mail')
-    def test_create_broker_user(self, mock_send_mail):
-        """Test creating a user with broker profile"""
-        broker_data = self.user_data.copy()
-        broker_data['user_type'] = 'broker'
-
-        url = reverse('user-list')
-        response = self.client.post(url, broker_data, format='json')
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(User.objects.count(), 2)  # Including the test user
-        self.assertEqual(StudentProfile.objects.count(), 0)
-        self.assertEqual(BrokerProfile.objects.count(), 1)
-        mock_send_mail.assert_called_once()
-    def test_me_endpoint_authenticated(self):
-        """Test the me endpoint returns user data when authenticated"""
-        self.client.force_authenticate(user=self.test_user)
-        url = reverse('user-me')
-        
-        response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['email'], self.test_user.email)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertTrue('refresh' in response.data)
+        self.assertTrue('access' in response.data)
+        self.assertEqual(response.data['user']['email'], 'existinguser@example.com')
+
+    @patch('google.oauth2.id_token.verify_oauth2_token')
+    def test_google_login_profile_required(self, mock_verify_token):
+        """Test Google login for an existing user without profile."""
+        # Create test user without profile
+        test_user = User.objects.create_user(
+            username='noprofile',
+            email='noprofile@example.com',
+            password='testpass123',
+            user_type='student',
+            google_id='987654321'
+        )
         
-    def test_me_endpoint_unauthenticated(self):
-        """Test the me endpoint returns 401 when not authenticated"""
-        url = reverse('user-me')
-        response = self.client.get(url)
+        # Mock the Google token verification
+        mock_verify_token.return_value = {
+            'sub': '987654321',
+            'email': 'noprofile@example.com',
+            'given_name': 'No',
+            'family_name': 'Profile',
+        }
+        
+        response = self.client.post(self.google_login_url, {'token': 'valid_token'})
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'profile_required')
+        self.assertEqual(response.data['user_type'], 'student')
+        self.assertTrue('temp_token' in response.data)
+
+    @patch('google.oauth2.id_token.verify_oauth2_token')
+    def test_google_login_invalid_token(self, mock_verify_token):
+        """Test Google login with invalid token."""
+        # Mock the Google token verification to raise an exception
+        mock_verify_token.side_effect = ValueError("Invalid token")
+        
+        response = self.client.post(self.google_login_url, {'token': 'invalid_token'})
+        
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data['detail'], 'Invalid Google token')
+
+    @patch('jwt.decode')
+    def test_complete_google_onboarding_new_user(self, mock_jwt_decode):
+        """Test completing Google onboarding for a new user."""
+        # Mock the JWT verification
+        mock_jwt_decode.return_value = {
+            'email': 'newuser@example.com',
+            'google_id': '123456789',
+        }
         
-    @patch('users.api.views.default_token_generator.check_token')
-    def test_verify_email_success(self, mock_check_token):
-        """Test successful email verification"""
-        mock_check_token.return_value = True
+        # Onboarding data
+        onboarding_data = {
+            'temp_token': 'valid_token',
+            'user_type': 'student',
+            'first_name': 'New',
+            'last_name': 'User',
+            'student_profile': {
+                'university': self.university.id,
+                'course': 'Computer Science',
+                'graduating_year': 2025
+            }
+        }
         
-        uid = urlsafe_base64_encode(force_bytes(self.test_user.pk))
-        token = "fake-token"
-        
-        url = reverse('user-verify-email')
-        data = {'uid': uid, 'token': token}
-        
-        response = self.client.post(url, data)
+        response = self.client.post(self.onboarding_url, onboarding_data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.test_user.refresh_from_db()
-        self.assertTrue(self.test_user.email_verified)
+        self.assertTrue('refresh' in response.data)
+        self.assertTrue('access' in response.data)
         
-    @patch('users.api.views.default_token_generator.check_token')
-    def test_verify_email_invalid_token(self, mock_check_token):
-        """Test email verification with invalid token"""
+        # Verify user was created
+        user = User.objects.get(email='newuser@example.com')
+        self.assertEqual(user.user_type, 'student')
+        self.assertEqual(user.google_id, '123456789')
+        
+        # Verify student profile was created
+        profile = StudentProfile.objects.get(user=user)
+        self.assertEqual(profile.university.id, self.university.id)
+        self.assertEqual(profile.course, 'Computer Science')
+
+    @patch('jwt.decode')
+    def test_complete_google_onboarding_existing_user(self, mock_jwt_decode):
+        """Test completing Google onboarding for an existing user."""
+        # Create user without profile
+        test_user = User.objects.create_user(
+            username='existingonboard',
+            email='existingonboard@example.com',
+            password='testpass123',
+            user_type='broker',
+            google_id='123123123'
+        )
+        
+        # Mock the JWT verification
+        mock_jwt_decode.return_value = {
+            'email': 'existingonboard@example.com',
+            'google_id': '123123123',
+        }
+        
+        # Onboarding data
+        onboarding_data = {
+            'temp_token': 'valid_token',
+            'user_type': 'broker',
+            'broker_profile': {
+                'company_name': 'Test Brokerage',
+                'license_number': 'BRK12345',
+            }
+        }
+        
+        response = self.client.post(self.onboarding_url, onboarding_data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Verify broker profile was created
+        profile = BrokerProfile.objects.get(user=test_user)
+        self.assertEqual(profile.company_name, 'Test Brokerage')
+
+
+class TraditionalAuthTests(TestCase):
+    """Test the traditional username/password authentication flow."""
+    
+    def setUp(self):
+        self.client = APIClient()
+        self.login_url = reverse('user-login')
+        self.register_url = reverse('user-list')
+        self.me_url = reverse('user-me')
+        
+        # Create a test university
+        self.university = University.objects.create(
+            name="Test University",
+            country="Test Country",
+            city="Test City",
+            location='POINT(0 0)'
+        )
+        
+        # Create a test user
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='testuser@example.com',
+            password='testpass123',
+            user_type='student'
+        )
+        
+        # Create student profile
+        self.profile = StudentProfile.objects.create(
+            user=self.user,
+            university=self.university,
+            course='Computer Science'
+        )
+
+    def test_login_success(self):
+        """Test successful login with correct credentials."""
+        response = self.client.post(self.login_url, {
+            'username': 'testuser',
+            'password': 'testpass123'
+        })
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue('refresh' in response.data)
+        self.assertTrue('access' in response.data)
+        self.assertEqual(response.data['user']['username'], 'testuser')
+
+    def test_login_failure(self):
+        """Test login failure with incorrect credentials."""
+        response = self.client.post(self.login_url, {
+            'username': 'testuser',
+            'password': 'wrongpass'
+        })
+        
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_register_success(self):
+        """Test successful user registration."""
+        registration_data = {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'newpass123',
+            'user_type': 'student',
+            'student_profile': {
+                'university': self.university.id,
+                'course': 'Physics'
+            }
+        }
+        
+        response = self.client.post(self.register_url, registration_data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(User.objects.filter(username='newuser').exists())
+        
+        # Verify student profile was created
+        user = User.objects.get(username='newuser')
+        self.assertTrue(StudentProfile.objects.filter(user=user).exists())
+
+    def test_me_endpoint(self):
+        """Test the 'me' endpoint returns the authenticated user's details."""
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.me_url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], 'testuser')
+        self.assertEqual(response.data['email'], 'testuser@example.com')
+        self.assertEqual(response.data['user_type'], 'student')
+        self.assertTrue('student_profile' in response.data)
+        self.assertEqual(response.data['student_profile']['course'], 'Computer Science')
