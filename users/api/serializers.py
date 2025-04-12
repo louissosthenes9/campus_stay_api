@@ -34,7 +34,7 @@ class UserSerializer(serializers.ModelSerializer):
                   'password', 'user_type','profile_pic',
                   'student_profile', 'broker_profile', 
                   'date_joined']
-        read_only_fields = ['id', 'date_joined', 'email_verified']
+        read_only_fields = ['id', 'date_joined']
     
     def create(self, validated_data):
         password = validated_data.pop('password')
