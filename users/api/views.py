@@ -46,17 +46,7 @@ class UserViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 
-                # Check if profile data is provided based on user type
-                if user_type == 'student' and not request.data.get('student_profile'):
-                    return Response(
-                        {'student_profile': 'Student profile information is required'}, 
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                elif user_type == 'broker' and not request.data.get('broker_profile'):
-                    return Response(
-                        {'broker_profile': 'Broker profile information is required'}, 
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+             
                 
                 # Save the user - note: removed email verification
                 user = user_serializer.save()
