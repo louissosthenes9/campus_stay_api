@@ -36,8 +36,7 @@ class User(AbstractUser):
 class StudentProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
     university = models.ForeignKey('universities.University', on_delete=models.CASCADE)
-    course = models.CharField(max_length=255)
-    year = models.CharField(max_length=255)
+    course = models.CharField(max_length=255,null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -47,6 +46,7 @@ class StudentProfile(models.Model):
 
 class BrokerProfile(models.Model):   
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='broker_profile')
+    company_name = models.CharField(max_length=255,null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -7,21 +7,19 @@ from universities.models import University
 User = get_user_model()
 
 class StudentProfileSerializer(serializers.ModelSerializer):
-    university_name = serializers.SerializerMethodField()
     
     class Meta:
         model = StudentProfile
-        fields = ['university', 'course', 'year', 'university_name']
+        fields = ['university', 'course']
         extra_kwargs = {
             'university': {'write_only': True}
         }
     
-    def get_university_name(self, obj):
-        return obj.university.name if obj.university else None
 
 class BrokerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = BrokerProfile
+        field = ['company_name']
 
 class UserSerializer(serializers.ModelSerializer):
     student_profile = StudentProfileSerializer(read_only=True)

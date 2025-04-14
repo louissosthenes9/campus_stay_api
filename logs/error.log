@@ -1,3 +1,5 @@
 ERROR 2025-04-01 02:06:07,900 basehttp 73317 139857254938176 You're accessing the development server over HTTPS, but it only supports HTTP.
 ERROR 2025-04-03 13:29:52,970 log 8927 140621054473792 Internal Server Error: /api/v1/users/
 ERROR 2025-04-03 13:29:53,044 basehttp 8927 140621054473792 "POST /api/v1/users/ HTTP/1.1" 500 62
+ERROR 2025-04-14 18:17:17,114 log 4310 140421253559872 Internal Server Error: /api/v1/users/
+ERROR 2025-04-14 18:17:17,184 basehttp 4310 140421253559872 "POST /api/v1/users/ HTTP/1.1" 500 62
