@@ -158,17 +158,28 @@ class UserViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def login(self, request):
-        """Traditional username/password login"""
-        username = request.data.get('username')
+        """Traditional username/email and password login"""
+        username_or_email = request.data.get('username')
         password = request.data.get('password')
         
-        if not username or not password:
+        if not username_or_email or not password:
             return Response(
-                {'detail': 'Both username and password are required'}, 
+                {'detail': 'Both username/email and password are required'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        user = authenticate(username=username, password=password)
+        # Try to authenticate with the given credentials as username
+        user = authenticate(username=username_or_email, password=password)
+        
+        # If authentication with username fails, try with email
+        if user is None:
+            try:
+                # Find the user with the given email
+                user_obj = User.objects.get(email=username_or_email)
+                # Try to authenticate with the found username
+                user = authenticate(username=user_obj.username, password=password)
+            except User.DoesNotExist:
+                user = None
         
         if user is None:
             return Response(

@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, Group, Permission
 
 class User(AbstractUser):
-    username = None  # Removing username field
+    username = models.CharField(max_length=150, unique=True,null=True, blank=True)  # Ensure username is unique and required
     email = models.EmailField(unique=True, null=False)  # Ensure email is unique and required
 
     full_name = models.CharField(max_length=255, blank=True, null=True)
@@ -25,8 +25,6 @@ class User(AbstractUser):
         related_name="custom_user_set_permissions", 
         blank=True
     )
-
-    USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['mobile', 'user_type']  # Fields required when creating superusers
 
     def __str__(self):
