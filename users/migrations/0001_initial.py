@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
                 ('full_name', models.CharField(blank=True, max_length=255, null=True)),
                 ('password', models.CharField(max_length=255)),
                 ('mobile', models.CharField(max_length=15)),
-                ('user_type', models.CharField(choices=[('student', 'Student'), ('broker', 'Broker'), ('admin', 'Admin')], max_length=10)),
+                ('roles', models.CharField(choices=[('student', 'Student'), ('broker', 'Broker'), ('admin', 'Admin')], max_length=10)),
                 ('profile_pic', models.ImageField(blank=True, null=True, upload_to='profile_pics/')),
                 ('email_verified', models.BooleanField(default=False)),
                 ('groups', models.ManyToManyField(blank=True, related_name='custom_user_set', to='auth.group')),

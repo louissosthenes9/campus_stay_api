@@ -77,7 +77,7 @@ class PropertiesSerializer(serializers.ModelSerializer):
         if not request or not hasattr(request, 'user') or not request.user.is_authenticated:
             return None
 
-        if request.user.user_type != 'student':
+        if request.user.roles != 'student':
             return None
 
         try:

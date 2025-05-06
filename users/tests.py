@@ -56,7 +56,7 @@ class GoogleAuthTests(TestCase):
             username='testuser',
             email='existinguser@example.com',
             password='testpass123',
-            user_type='student',
+            roles='student',
             google_id='123456789'
         )
         
@@ -90,7 +90,7 @@ class GoogleAuthTests(TestCase):
             username='noprofile',
             email='noprofile@example.com',
             password='testpass123',
-            user_type='student',
+            roles='student',
             google_id='987654321'
         )
         
@@ -106,7 +106,7 @@ class GoogleAuthTests(TestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'profile_required')
-        self.assertEqual(response.data['user_type'], 'student')
+        self.assertEqual(response.data['roles'], 'student')
         self.assertTrue('temp_token' in response.data)
 
     @patch('google.oauth2.id_token.verify_oauth2_token')
@@ -132,7 +132,7 @@ class GoogleAuthTests(TestCase):
         # Onboarding data
         onboarding_data = {
             'temp_token': 'valid_token',
-            'user_type': 'student',
+            'roles': 'student',
             'first_name': 'New',
             'last_name': 'User',
             'student_profile': {
@@ -150,7 +150,7 @@ class GoogleAuthTests(TestCase):
         
         # Verify user was created
         user = User.objects.get(email='newuser@example.com')
-        self.assertEqual(user.user_type, 'student')
+        self.assertEqual(user.roles, 'student')
         self.assertEqual(user.google_id, '123456789')
         
         # Verify student profile was created
@@ -166,7 +166,7 @@ class GoogleAuthTests(TestCase):
             username='existingonboard',
             email='existingonboard@example.com',
             password='testpass123',
-            user_type='broker',
+            roles='broker',
             google_id='123123123'
         )
         
@@ -179,7 +179,7 @@ class GoogleAuthTests(TestCase):
         # Onboarding data
         onboarding_data = {
             'temp_token': 'valid_token',
-            'user_type': 'broker',
+            'roles': 'broker',
             'broker_profile': {
                 'company_name': 'Test Brokerage',
                 'license_number': 'BRK12345',
@@ -217,7 +217,7 @@ class TraditionalAuthTests(TestCase):
             username='testuser',
             email='testuser@example.com',
             password='testpass123',
-            user_type='student'
+            roles='student'
         )
         
         # Create student profile
@@ -254,7 +254,7 @@ class TraditionalAuthTests(TestCase):
             'username': 'newuser',
             'email': 'newuser@example.com',
             'password': 'newpass123',
-            'user_type': 'student',
+            'roles': 'student',
             'student_profile': {
                 'university': self.university.id,
                 'course': 'Physics'
@@ -278,6 +278,6 @@ class TraditionalAuthTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['username'], 'testuser')
         self.assertEqual(response.data['email'], 'testuser@example.com')
-        self.assertEqual(response.data['user_type'], 'student')
+        self.assertEqual(response.data['roles'], 'student')
         self.assertTrue('student_profile' in response.data)
         self.assertEqual(response.data['student_profile']['course'], 'Computer Science')

@@ -13,7 +13,7 @@ from django.db import transaction
 class IsBrokerOrAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and (
-            request.user.user_type in ['broker', 'admin'] or 
+            request.user.roles in ['broker', 'admin'] or 
             request.user.is_staff
         )
 
@@ -58,7 +58,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Set the broker to the current user if they're a broker"""
-        if self.request.user.user_type == 'broker':
+        if self.request.user.roles == 'broker':
             serializer.save(broker=self.request.user)
         else:
             serializer.save()
@@ -66,7 +66,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='near-university')
     def near_university(self, request):
         """Endpoint for students to find properties near their university"""
-        if request.user.user_type != 'student':
+        if request.user.roles != 'student':
             return Response({"error": "This endpoint is only for students"}, 
                             status=status.HTTP_403_FORBIDDEN)
             
@@ -94,7 +94,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='my-properties')
     def my_properties(self, request):
         """Endpoint for brokers to list their properties"""
-        if request.user.user_type != 'broker':
+        if request.user.roles != 'broker':
             return Response({"error": "This endpoint is only for brokers"}, 
                             status=status.HTTP_403_FORBIDDEN)
         
@@ -108,7 +108,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             # Set the broker to current user if they're a broker
-            if request.user.user_type == 'broker':
+            if request.user.roles == 'broker':
                 serializer.save(broker=request.user)
             else:
                 serializer.save()

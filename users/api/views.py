@@ -29,10 +29,10 @@ class UserViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         # Validate request data before starting any database operations
-        user_type = request.data.get('user_type')
-        if not user_type or user_type not in ['student', 'broker', 'admin']:
+        roles = request.data.get('roles')
+        if not roles or roles not in ['student', 'broker', 'admin']:
             return Response(
-                {'user_type': 'A valid user type (student, broker, admin) is required'}, 
+                {'roles': 'A valid user type (student, broker, admin) is required'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -42,7 +42,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         # Pre-validate profile data if applicable
-        if user_type == 'student':
+        if roles == 'student':
             student_data = request.data.get('student_profile', {})
             if not student_data.get('university') and not student_data.get('university_name'):
                 return Response(
@@ -76,7 +76,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
                 
-        elif user_type == 'broker':
+        elif roles == 'broker':
             broker_data = request.data.get('broker_profile', {})
             broker_serializer = BrokerProfileSerializer(data=broker_data)
             if not broker_serializer.is_valid():
@@ -92,14 +92,14 @@ class UserViewSet(viewsets.ModelViewSet):
                 user = user_serializer.save()
                 
                 # Create profile in the same transaction but with minimal operations
-                if user.user_type == 'student':
+                if user.roles == 'student':
                     student_data = request.data.get('student_profile', {})
                     # We already validated the serializer above, so just save
                     student_serializer = StudentProfileSerializer(data=student_data)
                     student_serializer.is_valid()  # This will pass since we validated earlier
                     student_serializer.save(user=user)
                     
-                elif user.user_type == 'broker':
+                elif user.roles == 'broker':
                     broker_data = request.data.get('broker_profile', {})
                     broker_serializer = BrokerProfileSerializer(data=broker_data)
                     broker_serializer.is_valid()  # This will pass since we validated earlier
@@ -133,7 +133,7 @@ class UserViewSet(viewsets.ModelViewSet):
         data = serializer.data
         
         # Use the prefetched relations from our queryset
-        if request.user.user_type == 'student':
+        if request.user.roles == 'student':
             try:
                 # Access the profile directly through the attribute
                 profile = getattr(request.user, 'studentprofile', None)
@@ -144,7 +144,7 @@ class UserViewSet(viewsets.ModelViewSet):
             except StudentProfile.DoesNotExist:
                 data['student_profile'] = None
         
-        elif request.user.user_type == 'broker':
+        elif request.user.roles == 'broker':
             try:
                 profile = getattr(request.user, 'brokerprofile', None)
                 if profile:
@@ -235,7 +235,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     user.save(update_fields=['google_id'])
                 
                 # Check if user has completed onboarding
-                if not user.user_type:
+                if not user.roles:
                     return Response({
                         'status': 'onboarding_required',
                         'email': email,
@@ -246,21 +246,21 @@ class UserViewSet(viewsets.ModelViewSet):
                     }, status=status.HTTP_200_OK)
                 
                 # Check if profile exists for the user type
-                if user.user_type == 'student':
+                if user.roles == 'student':
                     has_profile = hasattr(user, 'studentprofile')
                     if not has_profile:
                         return Response({
                             'status': 'profile_required',
-                            'user_type': user.user_type,
+                            'roles': user.roles,
                             'email': email,
                             'temp_token': self._generate_onboarding_token(email, google_user_id)
                         }, status=status.HTTP_200_OK)
-                elif user.user_type == 'broker':
+                elif user.roles == 'broker':
                     has_profile = hasattr(user, 'brokerprofile')
                     if not has_profile:
                         return Response({
                             'status': 'profile_required',
-                            'user_type': user.user_type,
+                            'roles': user.roles,
                             'email': email,
                             'temp_token': self._generate_onboarding_token(email, google_user_id)
                         }, status=status.HTTP_200_OK)
@@ -327,15 +327,15 @@ class UserViewSet(viewsets.ModelViewSet):
     def complete_google_onboarding(self, request):
         """Complete the registration process after Google login."""
         temp_token = request.data.get('temp_token')
-        user_type = request.data.get('user_type')
+        roles = request.data.get('roles')
         
-        if not temp_token or not user_type:
+        if not temp_token or not roles:
             return Response(
                 {'detail': 'Missing required fields'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if user_type not in ['student', 'broker']:
+        if roles not in ['student', 'broker']:
             return Response(
                 {'detail': 'Invalid user type'}, 
                 status=status.HTTP_400_BAD_REQUEST
@@ -349,7 +349,7 @@ class UserViewSet(viewsets.ModelViewSet):
             google_id = payload.get('google_id')
             
             # Pre-validate profile data
-            if user_type == 'student':
+            if roles == 'student':
                 profile_data = request.data.get('student_profile', {})
                 if not profile_data or 'university' not in profile_data:
                     return Response(
@@ -359,7 +359,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 student_serializer = StudentProfileSerializer(data=profile_data)
                 if not student_serializer.is_valid():
                     return Response(student_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            elif user_type == 'broker':
+            elif roles == 'broker':
                 profile_data = request.data.get('broker_profile', {})
                 broker_serializer = BrokerProfileSerializer(data=profile_data)
                 if not broker_serializer.is_valid():
@@ -372,9 +372,9 @@ class UserViewSet(viewsets.ModelViewSet):
                 try:
                     user = User.objects.select_for_update().get(email=email)
                     # Update user type if needed
-                    if not user.user_type:
-                        user.user_type = user_type
-                        user.save(update_fields=['user_type'])
+                    if not user.roles:
+                        user.roles = roles
+                        user.save(update_fields=['roles'])
                 except User.DoesNotExist:
                     # Create new user
                     username = email.split('@')[0]
@@ -402,7 +402,7 @@ class UserViewSet(viewsets.ModelViewSet):
                         username=username,
                         email=email,
                         google_id=google_id,
-                        user_type=user_type,
+                        roles=roles,
                         password=password,
                         first_name=first_name,
                         last_name=last_name
@@ -410,7 +410,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     created = True
                 
                 # Handle profile creation based on user type
-                if user_type == 'student':
+                if roles == 'student':
                     profile_data = request.data.get('student_profile', {})
                     
                     if created:
@@ -423,7 +423,7 @@ class UserViewSet(viewsets.ModelViewSet):
                             defaults=profile_data
                         )
                         
-                elif user_type == 'broker':
+                elif roles == 'broker':
                     profile_data = request.data.get('broker_profile', {})
                     
                     if created:

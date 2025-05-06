@@ -7,13 +7,12 @@ class User(AbstractUser):
 
     full_name = models.CharField(max_length=255, blank=True, null=True)
     mobile = models.CharField(max_length=15)
-    
-    USER_TYPE_CHOICES = (
+    ROLES = (
         ('student', 'Student'),
         ('broker', 'Broker'),
         ('admin', 'Admin'),
     )
-    user_type = models.CharField(choices=USER_TYPE_CHOICES, max_length=10)
+    roles = models.CharField(choices=ROLES, max_length=10)
     profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     groups = models.ManyToManyField(
         Group,
@@ -25,7 +24,7 @@ class User(AbstractUser):
         related_name="custom_user_set_permissions", 
         blank=True
     )
-    REQUIRED_FIELDS = ['mobile', 'user_type']  # Fields required when creating superusers
+    REQUIRED_FIELDS = ['mobile', 'roles']  # Fields required when creating superusers
 
     def __str__(self):
         return self.full_name or self.email  # Fallback to email if full_name is empty
