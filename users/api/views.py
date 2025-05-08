@@ -136,7 +136,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.user.roles == 'student':
             try:
                 # Access the profile directly through the attribute
-                profile = getattr(request.user, 'studentprofile', None)
+                profile = getattr(request.user, 'student_profile', None)
                 if profile:
                     data['student_profile'] = StudentProfileSerializer(profile).data
                 else:
