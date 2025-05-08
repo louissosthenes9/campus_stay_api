@@ -200,7 +200,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def google_login(self, request):
         """Login or register with Google OAuth"""
-        token = request.data.get('token')
+        token = request.data.get('id_token')
         
         if not token:
             return Response(
