@@ -226,7 +226,7 @@ class UserViewSet(viewsets.ModelViewSet):
             user = None
             try:
                 user = User.objects.select_related(
-                    'studentprofile', 'brokerprofile'
+                    'student_profile', 'broker_profile'
                 ).get(email=email)
                 
                 # Update user info if needed - only if google_id is missing
@@ -247,7 +247,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 
                 # Check if profile exists for the user type
                 if user.roles == 'student':
-                    has_profile = hasattr(user, 'studentprofile')
+                    has_profile = hasattr(user, 'student_profile')
                     if not has_profile:
                         return Response({
                             'status': 'profile_required',
@@ -256,7 +256,7 @@ class UserViewSet(viewsets.ModelViewSet):
                             'temp_token': self._generate_onboarding_token(email, google_user_id)
                         }, status=status.HTTP_200_OK)
                 elif user.roles == 'broker':
-                    has_profile = hasattr(user, 'brokerprofile')
+                    has_profile = hasattr(user, 'broker_profile')
                     if not has_profile:
                         return Response({
                             'status': 'profile_required',
