@@ -146,7 +146,7 @@ class UserViewSet(viewsets.ModelViewSet):
         
         elif request.user.roles == 'broker':
             try:
-                profile = getattr(request.user, 'brokerprofile', None)
+                profile = getattr(request.user, 'broker_profile', None)
                 if profile:
                     data['broker_profile'] = BrokerProfileSerializer(profile).data
                 else:
