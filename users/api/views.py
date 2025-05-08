@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all().select_related('studentprofile', 'brokerprofile')
+    queryset = User.objects.all().select_related('student_profile', 'broker_profile')
     serializer_class = UserSerializer
     
     def get_permissions(self):
