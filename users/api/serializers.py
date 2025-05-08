@@ -19,7 +19,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
 class BrokerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = BrokerProfile
-        field = ['company_name']
+        fields = ['company_name']
 
 class UserSerializer(serializers.ModelSerializer):
     student_profile = StudentProfileSerializer(read_only=True)
