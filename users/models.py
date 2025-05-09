@@ -7,6 +7,7 @@ class User(AbstractUser):
 
     full_name = models.CharField(max_length=255, blank=True, null=True)
     mobile = models.CharField(max_length=15)
+    google_id = models.CharField(max_length=255, null=True, blank=True)
     ROLES = (
         ('student', 'Student'),
         ('broker', 'Broker'),
