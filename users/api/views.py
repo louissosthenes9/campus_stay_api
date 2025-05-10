@@ -12,6 +12,8 @@ from rest_framework.views import APIView
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from django.db import transaction
+from .serializers import CustomTokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -462,3 +464,6 @@ class UserViewSet(viewsets.ModelViewSet):
                 {'detail': 'Failed to complete registration'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

@@ -3,6 +3,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from users.models import StudentProfile, BrokerProfile
 from universities.models import University
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 User = get_user_model()
 
@@ -47,3 +49,19 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         
         return super().update(instance, validated_data)
+    
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # Add custom claims
+        token['roles'] = user.roles
+        token['email'] = user.email
+        token['name'] = f"{user.first_name} {user.last_name}"
+        
+        return token
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
