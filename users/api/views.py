@@ -279,7 +279,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_200_OK)
             
             # User exists and has completed onboarding - generate tokens
-            refresh = RefreshToken.for_user(user)
+            refresh = CustomTokenObtainPairSerializer.get_token(user)
             serializer = self.get_serializer(user)
             
             return Response({
