@@ -62,6 +62,3 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['name'] = f"{user.first_name} {user.last_name}"
         
         return token
-
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer

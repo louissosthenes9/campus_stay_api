@@ -8,7 +8,8 @@ from properties.api.views import PropertiesViewSet
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
-    TokenBlacklistView
+    TokenBlacklistView,
+    TokenObtainPairView
 )
 
 router = DefaultRouter()
@@ -18,7 +19,7 @@ router.register(r'properties', PropertiesViewSet)
 
 urlpatterns = [
     path('api/v1/', include(router.urls)),
-    path('api/v1/auth/token/',CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/v1/auth/token/',TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/v1/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v1/auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('api/v1/auth/token/blacklist/', TokenBlacklistView.as_view(), name='token_blacklist'),
