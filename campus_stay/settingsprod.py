@@ -248,6 +248,9 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+SIMPLE_JWT = {
+     "TOKEN_OBTAIN_SERIALIZER": "users.api.serializers.CustomTokenObtainPairSerializer",
+}
 # REST Auth settings
 REST_AUTH = {
     'USE_JWT': True,
