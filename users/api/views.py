@@ -108,7 +108,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     broker_serializer.save(user=user)
             
             # Generate tokens outside the transaction
-            refresh = RefreshToken.for_user(user)
+            refresh = CustomTokenObtainPairSerializer.get_token(user)
             
             response_data = {
                 'refresh': str(refresh),
@@ -189,7 +189,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED
             )
         
-        refresh = RefreshToken.for_user(user)
+        refresh = CustomTokenObtainPairSerializer.get_token(user)
         
         serializer = self.get_serializer(user)
         
@@ -439,7 +439,7 @@ class UserViewSet(viewsets.ModelViewSet):
                         )
             
             # Generate tokens for authentication - outside transaction
-            refresh = RefreshToken.for_user(user)
+            refresh = CustomTokenObtainPairSerializer.get_token(user)
             serializer = self.get_serializer(user)
             
             return Response({
