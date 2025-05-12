@@ -12,19 +12,21 @@ class Properties(models.Model):
         ('self_contained', 'Self Contained'),
         ('condo', 'Condo'),
     )
-    title = models.CharField(max_length=100) 
-    description = models.TextField()
+    title = models.CharField(max_length=100,blank=True,null=True) 
+    description = models.TextField(blank=True,null=True)
     broker=models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='properties')
     property_type = models.CharField(max_length=20, choices=PROPERTY_TYPE_CHOICES)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     bedrooms = models.PositiveIntegerField(blank=True,null=True)
     toilets = models.PositiveIntegerField(null=True, blank=True)
-    address = models.CharField(max_length=100)          
-    location = gis_models.PointField(srid=4326)
-    available_from = models.DateField()
+    address = models.CharField(max_length=100, blank=True, null=True)          
+    location = gis_models.PointField(srid=4326, blank=True, null=True)  # Fixed trailing comma
+    size = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    available_from = models.DateField(blank=True, null=True)
     lease_duration = models.PositiveIntegerField(help_text="Lease duration in months")
     is_furnished = models.BooleanField(default=False)
     is_available = models.BooleanField(default=True)
+    is_fenced = models.BooleanField(default=False)
 
     #### scores for ML
     safety_score = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)

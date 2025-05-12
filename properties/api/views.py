@@ -24,7 +24,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['property_type','broker','location','amenities','price', 'bedrooms', 'toilets', 'is_furnished',]    
-    search_fields = ['title', 'description','address']
+    search_fields = ['title', 'description','address','location']
     ordering_fields = ['price','location']
     ordering = ['-created_at']
 
