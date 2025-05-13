@@ -10,13 +10,16 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
     TokenBlacklistView,
-    TokenObtainPairView
 )
+from universities.api.views import UniversitiesViewSet
+from universities.api.views import CampusViewSet
 
 router = DefaultRouter()
 
 router.register(r'users', UserViewSet)
 router.register(r'properties', PropertiesViewSet)
+router.register(r'universities', UniversitiesViewSet)
+router.register(r'campuses', CampusViewSet)
 
 urlpatterns = [
     path('api/v1/', include(router.urls)),
