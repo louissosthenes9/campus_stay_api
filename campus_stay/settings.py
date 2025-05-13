@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'corsheaders',
     'django_filters',
+    'drf_spectacular',
     'leaflet',
     'storages',  # For S3 storage
     'allauth',  # Required for OAuth
@@ -158,6 +159,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # CORS settings
@@ -258,6 +260,14 @@ REST_AUTH = {
     'JWT_AUTH_COOKIE': 'jwt-auth',
 }
 
+#docs
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'campus stay API',
+    'DESCRIPTION': 'Student Renting Platform',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    
+}
 # S3 settings
 DEFAULT_FILE_STORAGE ='storages.backends.s3boto3.S3Boto3Storage'
 AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')

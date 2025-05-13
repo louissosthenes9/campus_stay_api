@@ -4,7 +4,7 @@ from django.urls import path,include
 from rest_framework.routers import DefaultRouter
 from users.api.views import UserViewSet
 from users.api.views import CustomTokenObtainPairView
-
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from properties.api.views import PropertiesViewSet
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
@@ -25,4 +25,10 @@ urlpatterns = [
     path('api/v1/auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('api/v1/auth/token/blacklist/', TokenBlacklistView.as_view(), name='token_blacklist'),
     path('admin/', admin.site.urls),
+    
+    ### API documentation
+     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    # Optional UI:
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]

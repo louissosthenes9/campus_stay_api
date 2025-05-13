@@ -7,7 +7,6 @@ class University(models.Model):
     address = models.TextField()
     website = models.URLField()
     location = gis_models.PointField(srid=4326)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

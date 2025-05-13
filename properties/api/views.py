@@ -23,7 +23,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     serializer_class = PropertiesSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['property_type','broker','location','amenities','price', 'bedrooms', 'toilets', 'is_furnished',]    
+    filterset_fields = ['property_type','broker','amenities','price', 'bedrooms', 'toilets', 'is_furnished',]    
     search_fields = ['title', 'description','address','location']
     ordering_fields = ['price','location']
     ordering = ['-created_at']

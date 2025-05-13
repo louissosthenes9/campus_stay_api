@@ -1,0 +1,1317 @@
+openapi: 3.0.3
+info:
+  title: campus stay API
+  version: 1.0.0
+  description: Student Renting Platform
+paths:
+  /api/v1/auth/token/:
+    post:
+      operationId: v1_auth_token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomTokenObtainPair'
+          description: ''
+  /api/v1/auth/token/blacklist/:
+    post:
+      operationId: v1_auth_token_blacklist_create
+      description: |-
+        Takes a token and blacklists it. Must be used with the
+        `rest_framework_simplejwt.token_blacklist` app installed.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklist'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklist'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklist'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenBlacklist'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: v1_auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/token/verify/:
+    post:
+      operationId: v1_auth_token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerify'
+          description: ''
+  /api/v1/properties/:
+    get:
+      operationId: v1_properties_list
+      parameters:
+      - in: query
+        name: amenities
+        schema:
+          type: array
+          items:
+            type: integer
+        explode: true
+        style: form
+      - in: query
+        name: bedrooms
+        schema:
+          type: integer
+      - in: query
+        name: broker
+        schema:
+          type: integer
+      - in: query
+        name: is_furnished
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: price
+        schema:
+          type: number
+      - in: query
+        name: property_type
+        schema:
+          type: string
+          enum:
+          - apartment
+          - condo
+          - hostel
+          - house
+          - master_bedroom
+          - self_contained
+          - shared_room
+          - single_room
+        description: |-
+          * `house` - House
+          * `apartment` - Apartment
+          * `hostel` - Hostel
+          * `shared_room` - Shared Room
+          * `single_room` - Single Room
+          * `master_bedroom` - Master Bedroom
+          * `self_contained` - Self Contained
+          * `condo` - Condo
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: toilets
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPropertiesList'
+          description: ''
+    post:
+      operationId: v1_properties_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Properties'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Properties'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Properties'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Properties'
+          description: ''
+  /api/v1/properties/{id}/:
+    get:
+      operationId: v1_properties_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this properties.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Properties'
+          description: ''
+    put:
+      operationId: v1_properties_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this properties.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Properties'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Properties'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Properties'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Properties'
+          description: ''
+    patch:
+      operationId: v1_properties_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this properties.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProperties'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProperties'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProperties'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Properties'
+          description: ''
+    delete:
+      operationId: v1_properties_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this properties.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/properties/my-properties/:
+    get:
+      operationId: v1_properties_my_properties_retrieve
+      description: Endpoint for brokers to list their properties
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Properties'
+          description: ''
+  /api/v1/properties/near-university/:
+    get:
+      operationId: v1_properties_near_university_retrieve
+      description: Endpoint for students to find properties near their university
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Properties'
+          description: ''
+  /api/v1/properties/register-property/:
+    post:
+      operationId: v1_properties_register_property_create
+      description: Dedicated endpoint for brokers and admins to register new properties
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Properties'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Properties'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Properties'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Properties'
+          description: ''
+  /api/v1/users/:
+    get:
+      operationId: v1_users_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+    post:
+      operationId: v1_users_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/{id}/:
+    get:
+      operationId: v1_users_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: v1_users_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: v1_users_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: v1_users_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/users/complete_google_onboarding/:
+    post:
+      operationId: v1_users_complete_google_onboarding_create
+      description: Complete the registration process after Google login.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/google_login/:
+    post:
+      operationId: v1_users_google_login_create
+      description: Login or register with Google OAuth
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/login/:
+    post:
+      operationId: v1_users_login_create
+      description: Traditional username/email and password login
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/me/:
+    get:
+      operationId: v1_users_me_retrieve
+      description: Return the current authenticated user's details.
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+components:
+  schemas:
+    BrokerProfile:
+      type: object
+      properties:
+        company_name:
+          type: string
+          nullable: true
+          maxLength: 255
+    CustomTokenObtainPair:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - username
+    GisFeatureCollectionEnum:
+      type: string
+      enum:
+      - FeatureCollection
+    GisFeatureEnum:
+      type: string
+      enum:
+      - Feature
+    NearByPlaces:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/GisFeatureEnum'
+        id:
+          type: integer
+          readOnly: true
+        geometry:
+          type: object
+          properties:
+            type:
+              type: string
+              enum:
+              - Point
+            coordinates:
+              type: array
+              items:
+                type: number
+                format: float
+              example:
+              - 12.9721
+              - 77.5933
+              minItems: 2
+              maxItems: 3
+        properties:
+          type: object
+          properties:
+            name:
+              type: string
+              maxLength: 200
+            place_type:
+              enum:
+              - university
+              - transport
+              - grocery
+              - restaurant
+              - cafe
+              - gym
+              - library
+              - park
+              - hospital
+              - pharmacy
+              type: string
+              description: |-
+                * `university` - University
+                * `transport` - Transport Hub
+                * `grocery` - Grocery Store
+                * `restaurant` - Restaurant
+                * `cafe` - Cafe
+                * `gym` - Gym
+                * `library` - Library
+                * `park` - Park
+                * `hospital` - Hospital
+                * `pharmacy` - Pharmacy
+            place_type_display:
+              type: string
+              readOnly: true
+            address:
+              type: string
+              maxLength: 255
+    PaginatedPropertiesList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          $ref: '#/components/schemas/PropertiesList'
+    PaginatedUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PatchedProperties:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/GisFeatureEnum'
+        id:
+          type: integer
+          readOnly: true
+        geometry:
+          type: object
+          properties:
+            type:
+              type: string
+              enum:
+              - Point
+            coordinates:
+              type: array
+              items:
+                type: number
+                format: float
+              example:
+              - 12.9721
+              - 77.5933
+              minItems: 2
+              maxItems: 3
+        properties:
+          type: object
+          properties:
+            title:
+              type: string
+              nullable: true
+              maxLength: 100
+            description:
+              type: string
+              nullable: true
+            broker:
+              type: integer
+              writeOnly: true
+            broker_name:
+              type: string
+              readOnly: true
+            broker_email:
+              type: string
+              readOnly: true
+            property_type:
+              enum:
+              - house
+              - apartment
+              - hostel
+              - shared_room
+              - single_room
+              - master_bedroom
+              - self_contained
+              - condo
+              type: string
+              description: |-
+                * `house` - House
+                * `apartment` - Apartment
+                * `hostel` - Hostel
+                * `shared_room` - Shared Room
+                * `single_room` - Single Room
+                * `master_bedroom` - Master Bedroom
+                * `self_contained` - Self Contained
+                * `condo` - Condo
+            property_type_display:
+              type: string
+              readOnly: true
+            price:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+            bedrooms:
+              type: integer
+              maximum: 2147483647
+              minimum: 0
+              nullable: true
+            toilets:
+              type: integer
+              maximum: 2147483647
+              minimum: 0
+              nullable: true
+            address:
+              type: string
+              nullable: true
+              maxLength: 100
+            available_from:
+              type: string
+              format: date
+              nullable: true
+            lease_duration:
+              type: integer
+              maximum: 2147483647
+              minimum: 0
+              description: Lease duration in months
+            is_furnished:
+              type: boolean
+            is_available:
+              type: boolean
+            safety_score:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+              nullable: true
+            transportation_score:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+              nullable: true
+            amenities_score:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+              nullable: true
+            overall_score:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+              nullable: true
+            nearby_places:
+              type: array
+              items:
+                $ref: '#/components/schemas/PropertyNearByPlaces'
+              readOnly: true
+            distance_to_university:
+              type: string
+              readOnly: true
+            amenities:
+              type: array
+              items:
+                $ref: '#/components/schemas/PropertyAmenity'
+              readOnly: true
+            amenity_ids:
+              type: array
+              items:
+                type: integer
+                writeOnly: true
+              writeOnly: true
+            images:
+              type: string
+              readOnly: true
+            videos:
+              type: string
+              readOnly: true
+            created_at:
+              type: string
+              format: date-time
+              readOnly: true
+            updated_at:
+              type: string
+              format: date-time
+              readOnly: true
+    PatchedUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        mobile:
+          type: string
+          maxLength: 15
+        last_name:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+        roles:
+          $ref: '#/components/schemas/RolesEnum'
+        profile_pic:
+          type: string
+          format: uri
+          nullable: true
+        student_profile:
+          allOf:
+          - $ref: '#/components/schemas/StudentProfile'
+          readOnly: true
+        broker_profile:
+          allOf:
+          - $ref: '#/components/schemas/BrokerProfile'
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+    Properties:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/GisFeatureEnum'
+        id:
+          type: integer
+          readOnly: true
+        geometry:
+          type: object
+          properties:
+            type:
+              type: string
+              enum:
+              - Point
+            coordinates:
+              type: array
+              items:
+                type: number
+                format: float
+              example:
+              - 12.9721
+              - 77.5933
+              minItems: 2
+              maxItems: 3
+        properties:
+          type: object
+          properties:
+            title:
+              type: string
+              nullable: true
+              maxLength: 100
+            description:
+              type: string
+              nullable: true
+            broker:
+              type: integer
+              writeOnly: true
+            broker_name:
+              type: string
+              readOnly: true
+            broker_email:
+              type: string
+              readOnly: true
+            property_type:
+              enum:
+              - house
+              - apartment
+              - hostel
+              - shared_room
+              - single_room
+              - master_bedroom
+              - self_contained
+              - condo
+              type: string
+              description: |-
+                * `house` - House
+                * `apartment` - Apartment
+                * `hostel` - Hostel
+                * `shared_room` - Shared Room
+                * `single_room` - Single Room
+                * `master_bedroom` - Master Bedroom
+                * `self_contained` - Self Contained
+                * `condo` - Condo
+            property_type_display:
+              type: string
+              readOnly: true
+            price:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+            bedrooms:
+              type: integer
+              maximum: 2147483647
+              minimum: 0
+              nullable: true
+            toilets:
+              type: integer
+              maximum: 2147483647
+              minimum: 0
+              nullable: true
+            address:
+              type: string
+              nullable: true
+              maxLength: 100
+            available_from:
+              type: string
+              format: date
+              nullable: true
+            lease_duration:
+              type: integer
+              maximum: 2147483647
+              minimum: 0
+              description: Lease duration in months
+            is_furnished:
+              type: boolean
+            is_available:
+              type: boolean
+            safety_score:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+              nullable: true
+            transportation_score:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+              nullable: true
+            amenities_score:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+              nullable: true
+            overall_score:
+              type: string
+              format: decimal
+              pattern: ^-?\d{0,2}(?:\.\d{0,1})?$
+              nullable: true
+            nearby_places:
+              type: array
+              items:
+                $ref: '#/components/schemas/PropertyNearByPlaces'
+              readOnly: true
+            distance_to_university:
+              type: string
+              readOnly: true
+            amenities:
+              type: array
+              items:
+                $ref: '#/components/schemas/PropertyAmenity'
+              readOnly: true
+            amenity_ids:
+              type: array
+              items:
+                type: integer
+                writeOnly: true
+              writeOnly: true
+            images:
+              type: string
+              readOnly: true
+            videos:
+              type: string
+              readOnly: true
+            created_at:
+              type: string
+              format: date-time
+              readOnly: true
+            updated_at:
+              type: string
+              format: date-time
+              readOnly: true
+    PropertiesList:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/GisFeatureCollectionEnum'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Properties'
+    PropertyAmenity:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        property:
+          type: integer
+        amenity:
+          type: integer
+        amenity_id:
+          type: integer
+          writeOnly: true
+        amenity_name:
+          type: string
+          readOnly: true
+        amenity_description:
+          type: string
+          readOnly: true
+        amenity_icon:
+          type: string
+          readOnly: true
+      required:
+      - amenity
+      - amenity_description
+      - amenity_icon
+      - amenity_id
+      - amenity_name
+      - id
+      - property
+    PropertyNearByPlaces:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        property:
+          type: integer
+        place:
+          allOf:
+          - $ref: '#/components/schemas/NearByPlaces'
+          readOnly: true
+        place_id:
+          type: integer
+          writeOnly: true
+        distance:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Distance in kilometers
+        walking_time:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Walking time in minutes
+      required:
+      - distance
+      - id
+      - place
+      - place_id
+      - property
+      - walking_time
+    RolesEnum:
+      enum:
+      - student
+      - broker
+      - admin
+      type: string
+      description: |-
+        * `student` - Student
+        * `broker` - Broker
+        * `admin` - Admin
+    StudentProfile:
+      type: object
+      properties:
+        university:
+          type: integer
+          writeOnly: true
+        course:
+          type: string
+          nullable: true
+          maxLength: 255
+      required:
+      - university
+    TokenBlacklist:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - refresh
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+    TokenVerify:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+      required:
+      - token
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        mobile:
+          type: string
+          maxLength: 15
+        last_name:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+        roles:
+          $ref: '#/components/schemas/RolesEnum'
+        profile_pic:
+          type: string
+          format: uri
+          nullable: true
+        student_profile:
+          allOf:
+          - $ref: '#/components/schemas/StudentProfile'
+          readOnly: true
+        broker_profile:
+          allOf:
+          - $ref: '#/components/schemas/BrokerProfile'
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - broker_profile
+      - date_joined
+      - email
+      - id
+      - mobile
+      - password
+      - roles
+      - student_profile
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

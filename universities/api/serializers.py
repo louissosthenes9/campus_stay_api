@@ -1,19 +1,20 @@
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from rest_framework import serializers
-from universities.models import University, Campus
 
-class CampusSerializer(serializers.ModelSerializer):
-    latitude = serializers.FloatField(source='location.y', read_only=True)
-    longitude = serializers.FloatField(source='location.x', read_only=True)
-    
+class UniversitySerializer(GeoFeatureModelSerializer):
     class Meta:
-        model = Campus
-        fields = ['id', 'name', 'address', 'latitude', 'longitude', 'university']
+        model = 'universities.University'
+        geo_field = 'location'
+        fields = ['id', 'name', 'logo', 'address', 'website','created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
 
-class UniversitySerializer(serializers.ModelSerializer):
-    campuses = CampusSerializer(many=True, read_only=True)
-    latitude = serializers.FloatField(source='location.y', read_only=True)
-    longitude = serializers.FloatField(source='location.x', read_only=True)
-    
+
+class CampusSerializer(GeoFeatureModelSerializer):
+    university = serializers.PrimaryKeyRelatedField(
+        queryset='universities.University.objects.all()',
+    )
     class Meta:
-        model = University
-        fields = ['id', 'name', 'address', 'website', 'latitude', 'longitude', 'campuses']
+        model = 'universities.Campus'
+        geo_field = 'location'
+        fields = ['id', 'name', 'university', 'address', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
