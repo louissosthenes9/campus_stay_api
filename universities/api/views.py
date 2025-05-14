@@ -13,13 +13,16 @@ class UniversitiesViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'address']
 
     def get_permissions(self):
+        if self.action == 'list':
+            # allow unauthenticated users to list
+            return [permissions.AllowAny()]
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAdminUser()]
+        # retrieve/detail still requires an authenticated user
         return [permissions.IsAuthenticated()]
-
     def list(self, request, *args, **kwargs):
         """
-        List all universities (authenticated users only).
+        List all universities
         """
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)

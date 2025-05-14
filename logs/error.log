@@ -3,3 +3,67 @@ ERROR 2025-04-03 13:29:52,970 log 8927 140621054473792 Internal Server Error: /a
 ERROR 2025-04-03 13:29:53,044 basehttp 8927 140621054473792 "POST /api/v1/users/ HTTP/1.1" 500 62
 ERROR 2025-04-14 18:17:17,114 log 4310 140421253559872 Internal Server Error: /api/v1/users/
 ERROR 2025-04-14 18:17:17,184 basehttp 4310 140421253559872 "POST /api/v1/users/ HTTP/1.1" 500 62
+ERROR 2025-05-13 22:06:16,165 log 68690 140500526954048 Internal Server Error: /api/schema/
+Traceback (most recent call last):
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/views.py", line 84, in get
+    return self._get_schema_response(request)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/views.py", line 92, in _get_schema_response
+    data=generator.get_schema(request=request, public=self.serve_public),
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/generators.py", line 285, in get_schema
+    paths=self.parse(request, public),
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/generators.py", line 256, in parse
+    operation = view.schema.get_operation(
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/openapi.py", line 104, in get_operation
+    auth = self.get_auth()
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/openapi.py", line 364, in get_auth
+    perms = [p.__class__ for p in self.view.get_permissions()]
+TypeError: 'NoneType' object is not iterable
+ERROR 2025-05-13 22:06:16,235 basehttp 68690 140500526954048 "GET /api/schema/ HTTP/1.1" 500 145
+ERROR 2025-05-13 22:06:16,503 log 68690 140500526954048 Internal Server Error: /api/schema/
+Traceback (most recent call last):
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/views.py", line 84, in get
+    return self._get_schema_response(request)
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/views.py", line 92, in _get_schema_response
+    data=generator.get_schema(request=request, public=self.serve_public),
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/generators.py", line 285, in get_schema
+    paths=self.parse(request, public),
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/generators.py", line 256, in parse
+    operation = view.schema.get_operation(
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/openapi.py", line 104, in get_operation
+    auth = self.get_auth()
+  File "/home/louis/campus_stay/env/lib/python3.10/site-packages/drf_spectacular/openapi.py", line 364, in get_auth
+    perms = [p.__class__ for p in self.view.get_permissions()]
+TypeError: 'NoneType' object is not iterable
+ERROR 2025-05-13 22:06:16,507 basehttp 68690 140500526954048 "GET /api/schema/ HTTP/1.1" 500 145
