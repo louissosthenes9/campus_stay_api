@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser, Group, Permission
 
 class User(AbstractUser):
     username = models.CharField(max_length=150, unique=True,null=True, blank=True)  # Ensure username is unique and required
-    email = models.EmailField(unique=True, null=False)  # Ensure email is unique and required
+    email = models.EmailField(unique=True, null=False,db_index=True)  # Ensure email is unique and required
 
     full_name = models.CharField(max_length=255, blank=True, null=True)
     mobile = models.CharField(max_length=15)
@@ -25,11 +25,10 @@ class User(AbstractUser):
         related_name="custom_user_set_permissions", 
         blank=True
     )
-    REQUIRED_FIELDS = ['mobile', 'roles']  # Fields required when creating superusers
+    REQUIRED_FIELDS = ['mobile', 'roles'] 
 
     def __str__(self):
-        return self.full_name or self.email  # Fallback to email if full_name is empty
-
+        return self.full_name or self.email  
 
 class StudentProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')

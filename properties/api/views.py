@@ -10,12 +10,12 @@ from properties.models import Properties
 from universities.models import University
 from django.db import transaction
 
-class IsBrokerOrAdmin(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and (
-            request.user.roles in ['broker', 'admin'] or 
-            request.user.is_staff
-        )
+# class IsBrokerOrAdmin(permissions.BasePermission):
+#     def has_permission(self, request, view):
+#         return request.user.is_authenticated and (
+#             request.user.roles in ['broker', 'admin'] or 
+#             request.user.is_staff
+#         )
 
 class PropertiesViewSet(viewsets.ModelViewSet):
     queryset = Properties.objects.all()
@@ -42,10 +42,10 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                 return Properties.objects.none()
         return queryset
 
-    def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsBrokerOrAdmin]
-        return super().get_permissions()
+    # def get_permissions(self):
+    #     if self.action in ['create', 'update', 'partial_update', 'destroy']:
+    #         self.permission_classes = [IsBrokerOrAdmin]
+    #     return super().get_permissions()
 
     def perform_create(self, serializer):
         with transaction.atomic():
