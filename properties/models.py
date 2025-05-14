@@ -12,6 +12,19 @@ class Properties(models.Model):
         ('self_contained', 'Self Contained'),
         ('condo', 'Condo'),
     )
+    WINDOWS_TYPE_CHOICES = (
+        ('Aluminum', 'Aluminum'),
+        ('Nyavu', 'Nyavu'),
+     
+        
+    )
+    ELECTRICITY_TYPE_CHOICES = (
+       ('Submetered','Submetered'), 
+       ('Shared','Shared'),
+       ('Individual','Individual'),
+       ('None','None'),
+    )
+    name = models.CharField(max_length=100, blank=True, null=True)
     title = models.CharField(max_length=100,blank=True,null=True) 
     description = models.TextField(blank=True,null=True)
     broker=models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='properties')
@@ -27,7 +40,9 @@ class Properties(models.Model):
     is_furnished = models.BooleanField(default=False)
     is_available = models.BooleanField(default=True)
     is_fenced = models.BooleanField(default=False)
-
+    windows_type = models.CharField(choices=WINDOWS_TYPE_CHOICES, null=True, blank=True)
+    electricity_type = models.CharField(choices=ELECTRICITY_TYPE_CHOICES, null=True, blank=True)
+    water_supply = models.BooleanField(default=False, help_text="Indicates if water supply is available",null=True, blank=True)
     #### scores for ML
     safety_score = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
     transportation_score = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
