@@ -5,6 +5,7 @@ Django production settings for campus_stay project with Supabase.
 from pathlib import Path
 import os
 import environ
+from datetime import timedelta
 
 # Initialize environ
 env = environ.Env()
@@ -253,6 +254,8 @@ SOCIALACCOUNT_PROVIDERS = {
 
 SIMPLE_JWT = {
      "TOKEN_OBTAIN_SERIALIZER": "users.api.serializers.CustomTokenObtainPairSerializer",
+     "ACCESS_TOKEN_LIFETIME": timedelta(hours=5),
+     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 # REST Auth settings
 REST_AUTH = {
