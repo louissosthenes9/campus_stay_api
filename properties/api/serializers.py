@@ -82,8 +82,6 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from properties.models import Properties, PropertyAmenity, PropertyMedia, PropertyNearByPlaces, NearByPlaces, Amenity
 
 class PropertiesSerializer(GeoFeatureModelSerializer):
-    broker_name = serializers.SerializerMethodField()
-    broker_email = serializers.SerializerMethodField()
     property_type_display = serializers.CharField(source='get_property_type_display', read_only=True)
     windows_type_display = serializers.CharField(source='get_windows_type_display', read_only=True)
     electricity_type_display = serializers.CharField(source='get_electricity_type_display', read_only=True)
@@ -100,8 +98,7 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         model = Properties
         geo_field = 'location'
         fields = [
-            'id', 'name', 'title', 'description', 'broker',
-            'broker_name', 'broker_email', 'property_type',
+            'id', 'name', 'title', 'description', 
             'property_type_display', 'price', 'bedrooms',
             'toilets', 'address', 'available_from',
             'lease_duration', 'is_furnished', 'is_available',
@@ -115,21 +112,12 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'id', 'broker_name', 'broker_email',
+            'id',
             'property_type_display', 'windows_type_display',
             'electricity_type_display', 'nearby_places',
             'distance_to_university', 'amenities',
             'images', 'videos', 'created_at', 'updated_at'
         ]
-        extra_kwargs = {
-            'broker': {'write_only': True},
-        }
-
-    def get_broker_name(self, obj):
-        return f"{obj.broker.first_name} {obj.broker.last_name}"
-
-    def get_broker_email(self, obj):
-        return obj.broker.email
 
     def get_images(self, obj):
         imgs = obj.media.filter(media_type='image')
