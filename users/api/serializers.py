@@ -1,7 +1,7 @@
 
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from users.models import StudentProfile, BrokerProfile
+from users.models import StudentProfile
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -15,16 +15,9 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'university': {'write_only': True}
         }
-    
-
-class BrokerProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BrokerProfile
-        fields = ['company_name']
 
 class UserSerializer(serializers.ModelSerializer):
     student_profile = StudentProfileSerializer(read_only=True)
-    broker_profile = BrokerProfileSerializer(read_only=True)
     password = serializers.CharField(write_only=True)
     
     class Meta:

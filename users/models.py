@@ -10,7 +10,6 @@ class User(AbstractUser):
     google_id = models.CharField(max_length=255, null=True, blank=True)
     ROLES = (
         ('student', 'Student'),
-        ('broker', 'Broker'),
         ('admin', 'Admin'),
     )
     roles = models.CharField(choices=ROLES, max_length=10)
@@ -40,12 +39,3 @@ class StudentProfile(models.Model):
     def __str__(self):
         return self.user.full_name or self.user.email
 
-
-class BrokerProfile(models.Model):   
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='broker_profile')
-    company_name = models.CharField(max_length=255,null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.user.full_name or self.user.email
