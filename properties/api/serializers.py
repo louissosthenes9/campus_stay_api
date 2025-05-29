@@ -2,15 +2,8 @@ from rest_framework import serializers
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
-
-from properties.models import (
-    Properties,
-    PropertyAmenity,
-    PropertyMedia,
-    PropertyNearByPlaces,
-    NearByPlaces,
-    Amenity
-)
+from rest_framework import serializers
+from properties.models import Properties, PropertyAmenity, PropertyMedia, PropertyNearByPlaces, NearByPlaces, Amenity
 
 
 class NearByPlacesSerializer(GeoFeatureModelSerializer):
@@ -76,11 +69,6 @@ class PropertyNearByPlacesSerializer(serializers.ModelSerializer):
             'distance', 'walking_time'
         ]
 
-
-from rest_framework import serializers
-from rest_framework_gis.serializers import GeoFeatureModelSerializer
-from properties.models import Properties, PropertyAmenity, PropertyMedia, PropertyNearByPlaces, NearByPlaces, Amenity
-
 class PropertiesSerializer(GeoFeatureModelSerializer):
     property_type_display = serializers.CharField(source='get_property_type_display', read_only=True)
     windows_type_display = serializers.CharField(source='get_windows_type_display', read_only=True)
@@ -111,13 +99,7 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             'amenity_ids', 'images', 'videos',
             'created_at', 'updated_at'
         ]
-        read_only_fields = [
-            'id',
-            'property_type_display', 'windows_type_display',
-            'electricity_type_display', 'nearby_places',
-            'distance_to_university', 'amenities',
-            'images', 'videos', 'created_at', 'updated_at'
-        ]
+       
 
     def get_images(self, obj):
         imgs = obj.media.filter(media_type='image')
@@ -141,23 +123,4 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             return round(dist_obj['dist'].m / 1000, 2)
         return None
 
-    def create(self, validated_data):
-        amenity_list = validated_data.pop('amenities', [])
-        location = validated_data.pop('location')
-        prop = Properties.objects.create(location=location, **validated_data)
-        for amen in amenity_list:
-            PropertyAmenity.objects.create(property=prop, amenity=amen)
-        return prop
-
-    def update(self, instance, validated_data):
-        amenity_list = validated_data.pop('amenities', None)
-        if 'location' in validated_data:
-            instance.location = validated_data.pop('location')
-        for attr, val in validated_data.items():
-            setattr(instance, attr, val)
-        instance.save()
-        if amenity_list is not None:
-            instance.amenities.clear()
-            for amen in amenity_list:
-                PropertyAmenity.objects.create(property=instance, amenity=amen)
-        return instance
+   
