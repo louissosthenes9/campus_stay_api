@@ -205,14 +205,14 @@ class PropertiesViewSet(viewsets.ModelViewSet):
             OpenApiParameter(
                 name='images',
                 type=OpenApiTypes.BINARY,
-                location=OpenApiParameter.FORM,
+                location=OpenApiParameter.QUERY,
                 description='Image files to upload',
                 many=True
             ),
             OpenApiParameter(
                 name='videos',
                 type=OpenApiTypes.BINARY,
-                location=OpenApiParameter.FORM,
+                location=OpenApiParameter.QUERY,
                 description='Video files to upload',
                 many=True
             ),
