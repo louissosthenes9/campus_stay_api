@@ -90,12 +90,12 @@ class PropertiesViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             property_instance = serializer.save()
             
-            # Handle amenities
+            # Handle amenities - Use get_or_create to avoid duplicates
             if 'amenity_ids' in property_data and property_data['amenity_ids']:
                 amenity_ids = property_data['amenity_ids']
                 if isinstance(amenity_ids, list):
                     for amenity_id in amenity_ids:
-                        PropertyAmenity.objects.create(
+                        PropertyAmenity.objects.get_or_create(
                             property=property_instance,
                             amenity_id=amenity_id
                         )
@@ -182,13 +182,16 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                     display_order=existing_videos_count + i
                 )
             
-            # Update amenities if provided
+            # Update amenities if provided - Fixed to avoid duplicates
             if 'amenity_ids' in property_data:
-                instance.amenities.all().delete()  # Remove existing
+                # Remove existing amenities first
+                instance.amenities.all().delete()
                 amenity_ids = property_data['amenity_ids']
                 if isinstance(amenity_ids, list):
-                    for amenity_id in amenity_ids:
-                        PropertyAmenity.objects.create(
+                    # Remove duplicates from the list itself
+                    unique_amenity_ids = list(set(amenity_ids))
+                    for amenity_id in unique_amenity_ids:
+                        PropertyAmenity.objects.get_or_create(
                             property=instance,
                             amenity_id=amenity_id
                         )

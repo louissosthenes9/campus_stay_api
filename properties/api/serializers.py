@@ -165,11 +165,12 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         # Create the property
         property_instance = Properties.objects.create(**validated_data)
         
-        # Add amenities
+        # Add amenities - Remove duplicates and use get_or_create
         if amenity_ids:
-            for amenity_id in amenity_ids:
+            unique_amenity_ids = list(set(amenity_ids))  # Remove duplicates
+            for amenity_id in unique_amenity_ids:
                 try:
-                    PropertyAmenity.objects.create(
+                    PropertyAmenity.objects.get_or_create(
                         property=property_instance,
                         amenity_id=amenity_id
                     )
@@ -194,10 +195,11 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             # Remove existing amenities
             instance.amenities.all().delete()
             
-            # Add new amenities
-            for amenity_id in amenity_ids:
+            # Add new amenities - Remove duplicates first
+            unique_amenity_ids = list(set(amenity_ids))  # Remove duplicates
+            for amenity_id in unique_amenity_ids:
                 try:
-                    PropertyAmenity.objects.create(
+                    PropertyAmenity.objects.get_or_create(
                         property=instance,
                         amenity_id=amenity_id
                     )
@@ -208,14 +210,17 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         return instance
 
     def validate_amenity_ids(self, value):
-        """Validate that all amenity IDs exist"""
+        """Validate that all amenity IDs exist and remove duplicates"""
         if value:
-            existing_ids = set(Amenity.objects.filter(id__in=value).values_list('id', flat=True))
-            invalid_ids = set(value) - existing_ids
+            # Remove duplicates from input
+            unique_ids = list(set(value))
+            existing_ids = set(Amenity.objects.filter(id__in=unique_ids).values_list('id', flat=True))
+            invalid_ids = set(unique_ids) - existing_ids
             if invalid_ids:
                 raise serializers.ValidationError(
                     f"Invalid amenity IDs: {list(invalid_ids)}"
                 )
+            return unique_ids  # Return the deduplicated list
         return value
 
     def validate_price(self, value):
