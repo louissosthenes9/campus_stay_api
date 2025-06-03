@@ -1,8 +1,37 @@
 from rest_framework import viewsets, filters, permissions, status
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
+from drf_spectacular.openapi import OpenApiTypes
 from universities.models import University, Campus
 from universities.api.serializers import UniversitySerializer, CampusSerializer
 
+
+@extend_schema_view(
+    list=extend_schema(
+        description="List all universities",
+        summary="Get all universities (public endpoint)"
+    ),
+    retrieve=extend_schema(
+        description="Retrieve a single university by ID with its associated campuses",
+        summary="Get university details with campuses (authenticated users only)"
+    ),
+    create=extend_schema(
+        description="Create a new university",
+        summary="Create university (admin only)"
+    ),
+    update=extend_schema(
+        description="Update an existing university",
+        summary="Update university (admin only)"
+    ),
+    partial_update=extend_schema(
+        description="Partially update an existing university",
+        summary="Partially update university (admin only)"
+    ),
+    destroy=extend_schema(
+        description="Delete a university",
+        summary="Delete university (admin only)"
+    ),
+)
 class UniversitiesViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows universities to be viewed or edited.
@@ -20,6 +49,7 @@ class UniversitiesViewSet(viewsets.ModelViewSet):
             return [permissions.IsAdminUser()]
         # retrieve/detail still requires an authenticated user
         return [permissions.IsAuthenticated()]
+
     def list(self, request, *args, **kwargs):
         """
         List all universities
@@ -38,8 +68,14 @@ class UniversitiesViewSet(viewsets.ModelViewSet):
         
         # Add associated campuses to the response
         campuses = instance.campuses.all()
-        campus_serializer = CampusSerializer(campuses, many=True)
-        data['campuses'] = campus_serializer.data['features'] if campus_serializer.data['features'] else []
+        campus_serializer = CampusSerializer(campuses, many=True, context={'request': request})
+        
+        # Handle GeoFeatureModelSerializer response format
+        campus_data = campus_serializer.data
+        if isinstance(campus_data, dict) and 'features' in campus_data:
+            data['campuses'] = campus_data['features']
+        else:
+            data['campuses'] = campus_data
         
         return Response(data)
 
@@ -82,6 +118,33 @@ class UniversitiesViewSet(viewsets.ModelViewSet):
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
+@extend_schema_view(
+    list=extend_schema(
+        description="List all campuses",
+        summary="Get all campuses (authenticated users only)"
+    ),
+    retrieve=extend_schema(
+        description="Retrieve a single campus by ID",
+        summary="Get campus details (authenticated users only)"
+    ),
+    create=extend_schema(
+        description="Create a new campus",
+        summary="Create campus (admin only)"
+    ),
+    update=extend_schema(
+        description="Update an existing campus",
+        summary="Update campus (admin only)"
+    ),
+    partial_update=extend_schema(
+        description="Partially update an existing campus",
+        summary="Partially update campus (admin only)"
+    ),
+    destroy=extend_schema(
+        description="Delete a campus",
+        summary="Delete campus (admin only)"
+    ),
+)
 class CampusViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows campuses to be viewed or edited.
