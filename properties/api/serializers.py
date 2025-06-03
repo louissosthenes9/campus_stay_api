@@ -4,6 +4,8 @@ from django.contrib.gis.geos import Point
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from properties.models import Properties, PropertyAmenity, PropertyMedia, PropertyNearByPlaces, NearByPlaces, Amenity
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
+from typing import List, Optional
 
 
 class PropertyMediaSerializer(serializers.ModelSerializer):
@@ -13,7 +15,8 @@ class PropertyMediaSerializer(serializers.ModelSerializer):
         model = PropertyMedia
         fields = ['id', 'media_type', 'url', 'display_order', 'is_primary', 'created_at']
     
-    def get_url(self, obj):
+    @extend_schema_field(serializers.URLField)
+    def get_url(self, obj) -> Optional[str]:
         request = self.context.get('request')
         if request and obj.file:
             return request.build_absolute_uri(obj.file.url)
@@ -95,7 +98,8 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             'location': {'required': False},  # Make location optional for easier testing
         }
 
-    def get_images(self, obj):
+    @extend_schema_field(serializers.ListField(child=serializers.URLField()))
+    def get_images(self, obj) -> List[str]:
         """Get all image URLs"""
         images = obj.media.filter(media_type='image').order_by('display_order', 'created_at')
         request = self.context.get('request')
@@ -103,7 +107,8 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             return [request.build_absolute_uri(img.file.url) for img in images]
         return [img.file.url for img in images]
 
-    def get_videos(self, obj):
+    @extend_schema_field(serializers.ListField(child=serializers.URLField()))
+    def get_videos(self, obj) -> List[str]:
         """Get all video URLs"""
         videos = obj.media.filter(media_type='video').order_by('display_order', 'created_at')
         request = self.context.get('request')
@@ -111,7 +116,8 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             return [request.build_absolute_uri(vid.file.url) for vid in videos]
         return [vid.file.url for vid in videos]
 
-    def get_primary_image(self, obj):
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_primary_image(self, obj) -> Optional[str]:
         """Get primary image URL"""
         primary_image = obj.media.filter(media_type='image', is_primary=True).first()
         if not primary_image:
@@ -125,7 +131,8 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             return primary_image.file.url
         return None
 
-    def get_distance_to_university(self, obj):
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_distance_to_university(self, obj) -> Optional[float]:
         """Calculate distance to user's university (for students only)"""
         request = self.context.get('request')
         if not (request and request.user.is_authenticated and getattr(request.user, 'roles', None) == 'student'):

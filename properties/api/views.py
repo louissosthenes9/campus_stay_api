@@ -5,6 +5,8 @@ from django.contrib.gis.db.models.functions import Distance
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
+from drf_spectacular.openapi import OpenApiTypes
 from .serializers import PropertiesSerializer
 from properties.models import Properties, PropertyMedia, PropertyAmenity
 from universities.models import University
@@ -12,6 +14,30 @@ from django.db import transaction
 import json
 
 
+@extend_schema_view(
+    list=extend_schema(
+        description="List all available properties with optional filtering",
+        parameters=[
+            OpenApiParameter(
+                name='university_id',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='Filter properties near a specific university'
+            ),
+            OpenApiParameter(
+                name='distance',
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description='Maximum distance from university in kilometers (default: 5)'
+            ),
+        ]
+    ),
+    create=extend_schema(description="Create a new property with media and amenities"),
+    retrieve=extend_schema(description="Get detailed information about a specific property"),
+    update=extend_schema(description="Update property information, media, and amenities"),
+    partial_update=extend_schema(description="Partially update property information"),
+    destroy=extend_schema(description="Delete a property"),
+)
 class PropertiesViewSet(viewsets.ModelViewSet):
     queryset = Properties.objects.all()
     serializer_class = PropertiesSerializer
@@ -173,6 +199,25 @@ class PropertiesViewSet(viewsets.ModelViewSet):
             )
             return Response(response_serializer.data)
 
+    @extend_schema(
+        description="Add media files to an existing property",
+        parameters=[
+            OpenApiParameter(
+                name='images',
+                type=OpenApiTypes.BINARY,
+                location=OpenApiParameter.FORM,
+                description='Image files to upload',
+                many=True
+            ),
+            OpenApiParameter(
+                name='videos',
+                type=OpenApiTypes.BINARY,
+                location=OpenApiParameter.FORM,
+                description='Video files to upload',
+                many=True
+            ),
+        ]
+    )
     @action(detail=True, methods=['post'], url_path='add-media')
     def add_media(self, request, pk=None):
         """Endpoint specifically for adding media to existing property"""
@@ -212,6 +257,17 @@ class PropertiesViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(property_instance, context={'request': request})
         return Response(serializer.data)
 
+    @extend_schema(
+        description="Remove specific media from property",
+        parameters=[
+            OpenApiParameter(
+                name='media_id',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description='ID of the media file to remove'
+            ),
+        ]
+    )
     @action(detail=True, methods=['delete'], url_path='remove-media/(?P<media_id>[^/.]+)')
     def remove_media(self, request, pk=None, media_id=None):
         """Remove specific media from property"""
@@ -230,6 +286,17 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+    @extend_schema(
+        description="Get properties near student's university",
+        parameters=[
+            OpenApiParameter(
+                name='distance',
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description='Maximum distance from university in kilometers (default: 5)'
+            ),
+        ]
+    )
     @action(detail=False, methods=['get'], url_path='near-university')
     def near_university(self, request):
         if request.user.roles != 'student':
