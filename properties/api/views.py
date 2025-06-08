@@ -12,7 +12,9 @@ from properties.models import Properties, PropertyMedia, PropertyAmenity
 from universities.models import University
 from django.db import transaction
 import json
+import logging
 
+logger = logging.getLogger(__name__)
 
 @extend_schema_view(
     list=extend_schema(
@@ -66,6 +68,11 @@ class PropertiesViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Handle property creation with images and videos in a single request"""
+        
+        logger.info("==== Incoming Property Create Request ====")
+        logger.info("Data: %s", dict(request.data))
+        logger.info("Files: %s", {k: [f.name for f in v] for k, v in request.FILES.lists()})
+        logger.info("Headers: %s", {k: v for k, v in request.META.items() if k.startswith("HTTP_")})
         with transaction.atomic():
             # Extract files from request
             images = request.FILES.getlist('images', [])

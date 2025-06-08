@@ -245,6 +245,6 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         """Validate lease duration"""
         if value < 1:
             raise serializers.ValidationError("Lease duration must be at least 1 month.")
-        if value > 120:  # 10 years max
+        if value > 120: 
             raise serializers.ValidationError("Lease duration cannot exceed 120 months.")
         return value
