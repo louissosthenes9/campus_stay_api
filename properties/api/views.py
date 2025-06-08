@@ -44,18 +44,19 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     queryset = Properties.objects.all()
     serializer_class = PropertiesSerializer
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser, JSONParser]  # Enable file uploads
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['property_type', 'price', 'bedrooms', 'toilets', 'is_furnished',]
+    filterset_fields = ['property_type', 'price', 'bedrooms', 'toilets', 'is_furnished']
     search_fields = ['title', 'description', 'address']
     ordering_fields = ['price', 'created_at']
     ordering = ['-created_at']
 
     def get_queryset(self):
+        """Retrieve filtered queryset, optionally by university proximity."""
         queryset = Properties.objects.filter(is_available=True)
         university_id = self.request.query_params.get('university_id')
         distance = self.request.query_params.get('distance', 5)
-        
+
         if university_id:
             try:
                 university = University.objects.get(id=university_id)
@@ -63,281 +64,292 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                     distance=Distance('location', university.location)
                 ).filter(distance__lte=D(km=float(distance))).order_by('distance')
             except University.DoesNotExist:
+                logger.warning(f"University {university_id} not found")
                 return Properties.objects.none()
+            except Exception as e:
+                logger.error(f"Error filtering properties by university {university_id}: {str(e)}", exc_info=True)
+                raise
         return queryset
 
     def create(self, request, *args, **kwargs):
-        """Handle property creation with images and videos in a single request"""
-        
+        """Handle property creation with images and videos in a single request."""
         logger.info("==== Incoming Property Create Request ====")
+        logger.info(f"User: {request.user.id}")
         logger.info("Data: %s", dict(request.data))
         logger.info("Files: %s", {k: [f.name for f in v] for k, v in request.FILES.lists()})
         logger.info("Headers: %s", {k: v for k, v in request.META.items() if k.startswith("HTTP_")})
-        with transaction.atomic():
-            # Extract files from request
-            images = request.FILES.getlist('images', [])
-            videos = request.FILES.getlist('videos', [])
-            
-            # Handle JSON data that might be sent as form data
-            property_data = {}
-            for key, value in request.data.items():
-                if key not in ['images', 'videos']:
-                    property_data[key] = value
-            
-            # Handle amenity_ids if sent as JSON string
-            if 'amenity_ids' in property_data:
-                if isinstance(property_data['amenity_ids'], str):
+
+        try:
+            with transaction.atomic():
+                # Extract files from request
+                images = request.FILES.getlist('images', [])
+                videos = request.FILES.getlist('videos', [])
+
+                # Handle JSON data from form data
+                property_data = {key: value for key, value in request.data.items() if key not in ['images', 'videos']}
+
+                # Parse amenity_ids if JSON string
+                if 'amenity_ids' in property_data and isinstance(property_data['amenity_ids'], str):
                     try:
                         property_data['amenity_ids'] = json.loads(property_data['amenity_ids'])
-                    except json.JSONDecodeError:
-                        pass
-            
-            # Create property instance
-            serializer = self.get_serializer(data=property_data)
-            serializer.is_valid(raise_exception=True)
-            property_instance = serializer.save()
-            
-            # Handle amenities - Use get_or_create to avoid duplicates
-            if 'amenity_ids' in property_data and property_data['amenity_ids']:
-                amenity_ids = property_data['amenity_ids']
-                if isinstance(amenity_ids, list):
-                    for amenity_id in amenity_ids:
-                        PropertyAmenity.objects.get_or_create(
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Failed to parse amenity_ids JSON: {str(e)}")
+
+                # Create property instance
+                serializer = self.get_serializer(data=property_data)
+                serializer.is_valid(raise_exception=True)
+                property_instance = serializer.save()
+                logger.info(f"Property instance created: {property_instance.id}")
+
+                # Handle amenities
+                if 'amenity_ids' in property_data and property_data['amenity_ids']:
+                    amenity_ids = property_data['amenity_ids']
+                    if isinstance(amenity_ids, list):
+                        for amenity_id in amenity_ids:
+                            try:
+                                PropertyAmenity.objects.get_or_create(
+                                    property=property_instance,
+                                    amenity_id=amenity_id
+                                )
+                            except Exception as e:
+                                logger.error(f"Error adding amenity {amenity_id} to property {property_instance.id}: {str(e)}")
+                                raise
+
+                # Handle image uploads
+                for i, image in enumerate(images):
+                    try:
+                        PropertyMedia.objects.create(
                             property=property_instance,
-                            amenity_id=amenity_id
+                            media_type='image',
+                            file=image,
+                            display_order=i,
+                            is_primary=(i == 0)
                         )
-            
-            # Handle image uploads
-            for i, image in enumerate(images):
-                PropertyMedia.objects.create(
-                    property=property_instance,
-                    media_type='image',
-                    file=image,
-                    display_order=i,
-                    is_primary=(i == 0)  # First image as primary
-                )
-            
-            # Handle video uploads
-            for i, video in enumerate(videos):
-                PropertyMedia.objects.create(
-                    property=property_instance,
-                    media_type='video',
-                    file=video,
-                    display_order=i
-                )
-            
-            # Return the created property with all related data
-            response_serializer = self.get_serializer(
-                property_instance, 
-                context={'request': request}
-            )
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+                    except Exception as e:
+                        logger.error(f"Error uploading image {image.name} to property {property_instance.id}: {str(e)}")
+                        raise
+
+                # Handle video uploads
+                for i, video in enumerate(videos):
+                    try:
+                        PropertyMedia.objects.create(
+                            property=property_instance,
+                            media_type='video',
+                            file=video,
+                            display_order=i
+                        )
+                    except Exception as e:
+                        logger.error(f"Error uploading video {video.name} to property {property_instance.id}: {str(e)}")
+                        raise
+
+                # Prepare response
+                response_serializer = self.get_serializer(property_instance, context={'request': request})
+                logger.info(f"Property created successfully: {property_instance.id}")
+                return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Error creating property for user {request.user.id}: {str(e)}", exc_info=True)
+            raise
 
     def update(self, request, *args, **kwargs):
-        """Handle property updates with media files"""
+        """Handle property updates with media files."""
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        
-        with transaction.atomic():
-            # Extract files from request
-            images = request.FILES.getlist('images', [])
-            videos = request.FILES.getlist('videos', [])
-            
-            # Handle property data update
-            property_data = {}
-            for key, value in request.data.items():
-                if key not in ['images', 'videos', 'replace_media']:
-                    property_data[key] = value
-            
-            # Handle amenity_ids if sent as JSON string
-            if 'amenity_ids' in property_data:
-                if isinstance(property_data['amenity_ids'], str):
+        logger.info(f"Updating property {instance.id} by user {request.user.id}")
+
+        try:
+            with transaction.atomic():
+                # Extract files from request
+                images = request.FILES.getlist('images', [])
+                videos = request.FILES.getlist('videos', [])
+
+                # Handle property data update
+                property_data = {key: value for key, value in request.data.items() if key not in ['images', 'videos', 'replace_media']}
+
+                # Parse amenity_ids if JSON string
+                if 'amenity_ids' in property_data and isinstance(property_data['amenity_ids'], str):
                     try:
                         property_data['amenity_ids'] = json.loads(property_data['amenity_ids'])
-                    except json.JSONDecodeError:
-                        pass
-            
-            serializer = self.get_serializer(instance, data=property_data, partial=partial)
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            
-            # Handle media replacement vs addition
-            replace_media = request.data.get('replace_media', 'false').lower() == 'true'
-            
-            if replace_media:
-                # Delete existing media
-                instance.media.all().delete()
-            
-            # Add new images
-            existing_images_count = instance.media.filter(media_type='image').count()
-            for i, image in enumerate(images):
-                PropertyMedia.objects.create(
-                    property=instance,
-                    media_type='image',
-                    file=image,
-                    display_order=existing_images_count + i,
-                    is_primary=(existing_images_count == 0 and i == 0)
-                )
-            
-            # Add new videos
-            existing_videos_count = instance.media.filter(media_type='video').count()
-            for i, video in enumerate(videos):
-                PropertyMedia.objects.create(
-                    property=instance,
-                    media_type='video',
-                    file=video,
-                    display_order=existing_videos_count + i
-                )
-            
-            # Update amenities if provided - Fixed to avoid duplicates
-            if 'amenity_ids' in property_data:
-                # Remove existing amenities first
-                instance.amenities.all().delete()
-                amenity_ids = property_data['amenity_ids']
-                if isinstance(amenity_ids, list):
-                    # Remove duplicates from the list itself
-                    unique_amenity_ids = list(set(amenity_ids))
-                    for amenity_id in unique_amenity_ids:
-                        PropertyAmenity.objects.get_or_create(
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Failed to parse amenity_ids JSON: {str(e)}")
+
+                serializer = self.get_serializer(instance, data=property_data, partial=partial)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+                logger.info(f"Property data updated: {instance.id}")
+
+                # Handle media replacement or addition
+                replace_media = request.data.get('replace_media', 'false').lower() == 'true'
+                if replace_media:
+                    try:
+                        instance.media.all().delete()
+                        logger.info(f"Existing media deleted for property {instance.id}")
+                    except Exception as e:
+                        logger.error(f"Error deleting media for property {instance.id}: {str(e)}")
+                        raise
+
+                # Add new images
+                existing_images_count = instance.media.filter(media_type='image').count()
+                for i, image in enumerate(images):
+                    try:
+                        PropertyMedia.objects.create(
                             property=instance,
-                            amenity_id=amenity_id
+                            media_type='image',
+                            file=image,
+                            display_order=existing_images_count + i,
+                            is_primary=(existing_images_count == 0 and i == 0)
                         )
-            
-            response_serializer = self.get_serializer(
-                instance, 
-                context={'request': request}
-            )
-            return Response(response_serializer.data)
+                    except Exception as e:
+                        logger.error(f"Error uploading image {image.name} to property {instance.id}: {str(e)}")
+                        raise
+
+                # Add new videos
+                existing_videos_count = instance.media.filter(media_type='video').count()
+                for i, video in enumerate(videos):
+                    try:
+                        PropertyMedia.objects.create(
+                            property=instance,
+                            media_type='video',
+                            file=video,
+                            display_order=existing_videos_count + i
+                        )
+                    except Exception as e:
+                        logger.error(f"Error uploading video {video.name} to property {instance.id}: {str(e)}")
+                        raise
+
+                # Update amenities
+                if 'amenity_ids' in property_data:
+                    try:
+                        instance.amenities.all().delete()
+                        amenity_ids = property_data['amenity_ids']
+                        if isinstance(amenity_ids, list):
+                            unique_amenity_ids = list(set(amenity_ids))
+                            for amenity_id in unique_amenity_ids:
+                                PropertyAmenity.objects.get_or_create(
+                                    property=instance,
+                                    amenity_id=amenity_id
+                                )
+                        logger.info(f"Amenities updated for property {instance.id}")
+                    except Exception as e:
+                        logger.error(f"Error updating amenities for property {instance.id}: {str(e)}")
+                        raise
+
+                response_serializer = self.get_serializer(instance, context={'request': request})
+                logger.info(f"Property updated successfully: {instance.id}")
+                return Response(response_serializer.data)
+        except Exception as e:
+            logger.error(f"Error updating property {instance.id} for user {request.user.id}: {str(e)}", exc_info=True)
+            raise
 
     @extend_schema(
         description="Add media files to an existing property",
         parameters=[
-            OpenApiParameter(
-                name='images',
-                type=OpenApiTypes.BINARY,
-                location=OpenApiParameter.QUERY,
-                description='Image files to upload',
-                many=True
-            ),
-            OpenApiParameter(
-                name='videos',
-                type=OpenApiTypes.BINARY,
-                location=OpenApiParameter.QUERY,
-                description='Video files to upload',
-                many=True
-            ),
+            OpenApiParameter(name='images', type=OpenApiTypes.BINARY, location=OpenApiParameter.QUERY, description='Image files to upload', many=True),
+            OpenApiParameter(name='videos', type=OpenApiTypes.BINARY, location=OpenApiParameter.QUERY, description='Video files to upload', many=True),
         ]
     )
     @action(detail=True, methods=['post'], url_path='add-media')
     def add_media(self, request, pk=None):
-        """Endpoint specifically for adding media to existing property"""
+        """Endpoint for adding media to an existing property."""
         property_instance = self.get_object()
-        
         images = request.FILES.getlist('images', [])
         videos = request.FILES.getlist('videos', [])
-        
+
         if not images and not videos:
-            return Response(
-                {"error": "No media files provided"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        with transaction.atomic():
-            # Add images
-            existing_images_count = property_instance.media.filter(media_type='image').count()
-            for i, image in enumerate(images):
-                PropertyMedia.objects.create(
-                    property=property_instance,
-                    media_type='image',
-                    file=image,
-                    display_order=existing_images_count + i,
-                    is_primary=(existing_images_count == 0 and i == 0)
-                )
-            
-            # Add videos
-            existing_videos_count = property_instance.media.filter(media_type='video').count()
-            for i, video in enumerate(videos):
-                PropertyMedia.objects.create(
-                    property=property_instance,
-                    media_type='video',
-                    file=video,
-                    display_order=existing_videos_count + i
-                )
-        
-        serializer = self.get_serializer(property_instance, context={'request': request})
-        return Response(serializer.data)
+            logger.warning(f"No media files provided for property {property_instance.id} by user {request.user.id}")
+            return Response({"error": "No media files provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                # Add images
+                existing_images_count = property_instance.media.filter(media_type='image').count()
+                for i, image in enumerate(images):
+                    try:
+                        PropertyMedia.objects.create(
+                            property=property_instance,
+                            media_type='image',
+                            file=image,
+                            display_order=existing_images_count + i,
+                            is_primary=(existing_images_count == 0 and i == 0)
+                        )
+                    except Exception as e:
+                        logger.error(f"Error adding image {image.name} to property {property_instance.id}: {str(e)}")
+                        raise
+
+                # Add videos
+                existing_videos_count = property_instance.media.filter(media_type='video').count()
+                for i, video in enumerate(videos):
+                    try:
+                        PropertyMedia.objects.create(
+                            property=property_instance,
+                            media_type='video',
+                            file=video,
+                            display_order=existing_videos_count + i
+                        )
+                    except Exception as e:
+                        logger.error(f"Error adding video {video.name} to property {property_instance.id}: {str(e)}")
+                        raise
+
+                serializer = self.get_serializer(property_instance, context={'request': request})
+                logger.info(f"Media added to property {property_instance.id} by user {request.user.id}")
+                return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Error adding media to property {property_instance.id} by user {request.user.id}: {str(e)}", exc_info=True)
+            raise
 
     @extend_schema(
         description="Remove specific media from property",
         parameters=[
-            OpenApiParameter(
-                name='media_id',
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.PATH,
-                description='ID of the media file to remove'
-            ),
+            OpenApiParameter(name='media_id', type=OpenApiTypes.INT, location=OpenApiParameter.PATH, description='ID of the media file to remove'),
         ]
     )
     @action(detail=True, methods=['delete'], url_path='remove-media/(?P<media_id>[^/.]+)')
     def remove_media(self, request, pk=None, media_id=None):
-        """Remove specific media from property"""
+        """Remove specific media from property."""
         property_instance = self.get_object()
-        
+
         try:
-            media = PropertyMedia.objects.get(
-                id=media_id, 
-                property=property_instance
-            )
+            media = PropertyMedia.objects.get(id=media_id, property=property_instance)
             media.delete()
+            logger.info(f"Media {media_id} removed from property {property_instance.id} by user {request.user.id}")
             return Response({"message": "Media removed successfully"})
         except PropertyMedia.DoesNotExist:
-            return Response(
-                {"error": "Media not found"}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            logger.warning(f"Media {media_id} not found for property {property_instance.id} by user {request.user.id}")
+            return Response({"error": "Media not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error removing media {media_id} from property {property_instance.id}: {str(e)}", exc_info=True)
+            return Response({"error": "Failed to remove media"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         description="Get properties near student's university",
         parameters=[
-            OpenApiParameter(
-                name='distance',
-                type=OpenApiTypes.NUMBER,
-                location=OpenApiParameter.QUERY,
-                description='Maximum distance from university in kilometers (default: 5)'
-            ),
+            OpenApiParameter(name='distance', type=OpenApiTypes.NUMBER, location=OpenApiParameter.QUERY, description='Maximum distance from university in kilometers (default: 5)'),
         ]
     )
     @action(detail=False, methods=['get'], url_path='near-university')
     def near_university(self, request):
+        """Get properties near the student's university."""
         if request.user.roles != 'student':
-            return Response(
-                {"error": "This endpoint is only for students"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
+            logger.warning(f"Non-student user {request.user.id} attempted to access near-university endpoint")
+            return Response({"error": "This endpoint is only for students"}, status=status.HTTP_403_FORBIDDEN)
+
         if not hasattr(request.user, 'student_profile') or not request.user.student_profile.university_id:
-            return Response(
-                {"error": "Student profile or university not set"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
+            logger.warning(f"Student profile or university not set for user {request.user.id}")
+            return Response({"error": "Student profile or university not set"}, status=status.HTTP_400_BAD_REQUEST)
+
         university_id = request.user.student_profile.university_id
         distance = request.query_params.get('distance', 5)
-        
+
         try:
             university = University.objects.get(id=university_id)
             properties = Properties.objects.filter(is_available=True).annotate(
                 distance=Distance('location', university.location)
             ).filter(distance__lte=D(km=float(distance))).order_by('distance')
-            
-            serializer = self.get_serializer(
-                properties, 
-                many=True, 
-                context={'request': request}
-            )
+            serializer = self.get_serializer(properties, many=True, context={'request': request})
+            logger.info(f"Retrieved {properties.count()} properties near university {university_id} for student {request.user.id}")
             return Response(serializer.data)
         except University.DoesNotExist:
-            return Response(
-                {"error": "University not found"}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            logger.warning(f"University {university_id} not found for student {request.user.id}")
+            return Response({"error": "University not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error retrieving properties near university {university_id} for user {request.user.id}: {str(e)}", exc_info=True)
+            return Response({"error": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
