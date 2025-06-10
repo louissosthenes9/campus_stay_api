@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_gis',
     'rest_framework_simplejwt',
+    'storages',
     'corsheaders',
     'drf_spectacular',
     'django_filters',
@@ -273,8 +274,8 @@ SOCIALACCOUNT_PROVIDERS = {
 
 SIMPLE_JWT = {
      "TOKEN_OBTAIN_SERIALIZER": "users.api.serializers.CustomTokenObtainPairSerializer",
-     "ACCESS_TOKEN_LIFETIME": timedelta(hours=5),
-     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+     "ACCESS_TOKEN_LIFETIME": timedelta(days=40),
+     "REFRESH_TOKEN_LIFETIME": timedelta(days=40),
 }
 # REST Auth settings
 REST_AUTH = {
