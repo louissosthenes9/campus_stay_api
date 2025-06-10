@@ -81,7 +81,7 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         model = Properties
         geo_field = 'location'
         fields = [
-            'id', 'name', 'title', 'description', 
+            'id', 'name', 'title', 'description', 'location',
             'property_type', 'property_type_display', 'price', 'bedrooms',
             'toilets', 'address', 'available_from',
             'lease_duration', 'is_furnished', 'is_available',

@@ -114,7 +114,13 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                             except Exception as e:
                                 logger.error(f"Error adding amenity {amenity_id} to property {property_instance.id}: {str(e)}")
                                 raise
-
+                
+                if 'location' in property_data and isinstance(property_data['location'], str):
+                    try:
+                        property_data['location'] = json.loads(property_data['location'])
+                    except json.JSONDecodeError:
+                        logger.error(f"Invalid JSON format for location: {property_data['location']}")
+                        return Response({'location': 'Invalid JSON format'}, status=status.HTTP_400_BAD_REQUEST)
                 # Handle image uploads
                 for i, image in enumerate(images):
                     try:
