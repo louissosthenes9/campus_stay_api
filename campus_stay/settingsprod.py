@@ -66,7 +66,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'allauth.account.middleware.AccountMiddleware',  # Required by django-allauth
+    'allauth.account.middleware.AccountMiddleware',  
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -138,7 +138,7 @@ AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
-AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL')  # https://s3.filebase.com
+AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL') 
 AWS_S3_SIGNATURE_VERSION = env('AWS_S3_SIGNATURE_VERSION', default='s3v4')
 AWS_DEFAULT_ACL = env('AWS_DEFAULT_ACL', default=None)
 

@@ -1,5 +1,5 @@
 """
-Django production settings for campus_stay project with Supabase.
+Django production settings for campus_stay project with Supabase and S3.
 """
 
 from pathlib import Path
@@ -37,12 +37,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_gis',
     'rest_framework_simplejwt',
-    'django_extensions',
+    'storages',
     'corsheaders',
-    'django_filters',
     'drf_spectacular',
+    'django_filters',
     'leaflet',
-    'storages',  # For S3 storage
     'allauth',  # Required for OAuth
     'allauth.account',  # Required for authentication flows
     'allauth.socialaccount',  # Required for social authentication
@@ -67,7 +66,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'allauth.account.middleware.AccountMiddleware',  # Required by django-allauth
+    'allauth.account.middleware.AccountMiddleware',  
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -134,13 +133,40 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Filebase S3-Compatible Configuration
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL') 
+AWS_S3_SIGNATURE_VERSION = env('AWS_S3_SIGNATURE_VERSION', default='s3v4')
+AWS_DEFAULT_ACL = env('AWS_DEFAULT_ACL', default=None)
 
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Filebase-specific settings
+AWS_S3_USE_SSL = True
+AWS_S3_VERIFY = True
+AWS_S3_ADDRESSING_STYLE = 'virtual'
+
+# File Storage Settings
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+
+# Static files (CSS, JavaScript, Images) - served from Filebase
+STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.filebase.com/static/'
+STATIC_ROOT = 'static/'
+
+# Media files - served from Filebase
+MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.filebase.com/media/'
+MEDIA_ROOT = 'media/'
+
+# Filebase S3 Storage Configuration
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.filebase.com'
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
+AWS_S3_FILE_OVERWRITE = False
+AWS_LOCATION = 'media'
+AWS_QUERYSTRING_AUTH = False
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -158,62 +184,83 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 CORS_ALLOW_CREDENTIALS = True
 
-FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
+FRONTEND_URL = env('FRONTEND_URL', default='https://campus-stay.vercel.app')
 
 # Security settings
 SECURE_SSL_REDIRECT=False
 SESSION_COOKIE_SECURE=False
 CSRF_COOKIE_SECURE=False
 
-# Logging configuration
+# Logging configuration - ALL LOGS TO CONSOLE
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
             'style': '{',
         },
     },
     'handlers': {
-        'file': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/error.log'),
-            'formatter': 'verbose',
-        },
         'console': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': 'verbose'
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
-            'level': 'ERROR',
+            'handlers': ['console'],
+            'level': 'DEBUG',
             'propagate': True,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.template': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        '': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
         },
     },
 }
 
-
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_HOST = env('EMAIL_HOST', default='sandbox.smtp.mailtrap.io')
+EMAIL_PORT = env.int('EMAIL_PORT', default=2525)
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER',default='7e2aacbc250784')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD',default='e8f5e592bbe1b6')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
 
 # Google OAuth Settings
@@ -254,30 +301,12 @@ SOCIALACCOUNT_PROVIDERS = {
 
 SIMPLE_JWT = {
      "TOKEN_OBTAIN_SERIALIZER": "users.api.serializers.CustomTokenObtainPairSerializer",
-     "ACCESS_TOKEN_LIFETIME": timedelta(hours=5),
-     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+     "ACCESS_TOKEN_LIFETIME": timedelta(days=40),
+     "REFRESH_TOKEN_LIFETIME": timedelta(days=40),
 }
+
 # REST Auth settings
 REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE': 'jwt-auth',
 }
-
-#docs
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'campus stay API',
-    'DESCRIPTION': 'Student Renting Platform',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    
-}
-# S3 settings
-DEFAULT_FILE_STORAGE ='storages.backends.s3boto3.S3Boto3Storage'
-AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
-AWS_S3_ENDPOINT_URL=env('AWS_S3_ENDPOINT_URL')
-AWS_S3_SIGNATURE_VERSION=env('AWS_S3_SIGNATURE_VERSION', default='s3v4')
- 
-
