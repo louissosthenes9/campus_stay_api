@@ -2,6 +2,7 @@
 from django.contrib import admin
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
+from reviews.api.views import PropertyReviewViewSet
 from users.api.views import UserViewSet
 from users.api.views import CustomTokenObtainPairView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
@@ -20,7 +21,7 @@ router.register(r'users', UserViewSet)
 router.register(r'properties', PropertiesViewSet)
 router.register(r'universities', UniversitiesViewSet)
 router.register(r'campuses', CampusViewSet)
-router.register(r'reviews', 'reviews.api.views.PropertyReviewViewSet')
+router.register(r'reviews',PropertyReviewViewSet)
 
 urlpatterns = [
     path('api/v1/', include(router.urls)),
