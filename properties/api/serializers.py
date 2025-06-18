@@ -10,6 +10,9 @@ from typing import List, Optional
 
 class PropertyMediaSerializer(serializers.ModelSerializer):
     url = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+    is_recently_viewed = serializers.SerializerMethodField()
     
     class Meta:
         model = PropertyMedia
@@ -92,7 +95,9 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             'overall_score', 'distance_to_university',
             'amenities', 'nearby_places', 'media',
             'images', 'videos', 'primary_image',
-            'amenity_ids', 'created_at', 'updated_at'
+            'amenity_ids', 'created_at', 'updated_at',
+            'is_special_needs', 'view_count', 'last_viewed',
+            'average_rating', 'review_count', 'is_recently_viewed'
         ]
         extra_kwargs = {
             'location': {'required': False},  # Make location optional for easier testing
@@ -248,3 +253,34 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         if value > 120: 
             raise serializers.ValidationError("Lease duration cannot exceed 120 months.")
         return value
+    
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_average_rating(self, obj) -> Optional[float]:
+        """Get average rating from reviews."""
+        # Uncomment when you have Review model
+        # if hasattr(obj, 'reviews'):
+        #     avg_rating = obj.reviews.aggregate(Avg('rating'))['rating__avg']
+        #     return round(avg_rating, 1) if avg_rating else None
+        
+        # Temporary fallback using overall_score
+        return obj.overall_score
+    
+    @extend_schema_field(serializers.IntegerField())
+    def get_review_count(self, obj) -> int:
+        """Get total number of reviews."""
+        # Uncomment when you have Review model
+        # if hasattr(obj, 'reviews'):
+        #     return obj.reviews.count()
+        
+        # Temporary fallback
+        return 0
+    
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_recently_viewed(self, obj) -> bool:
+        """Check if property is in user's recently viewed list."""
+        request = self.context.get('request')
+        if request and request.session:
+            viewed_properties = request.session.get('recently_viewed_properties', [])
+            return obj.id in viewed_properties
+        return False
+

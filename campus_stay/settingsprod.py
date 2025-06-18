@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'user_messages',
     'reviews',
     'favourites',
+    
 ]
 
 # Site ID required for django-allauth
@@ -69,6 +70,7 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',  
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'middleware.property_tracking.PropertyViewTrackingMiddleware',  # Custom middleware for property view tracking
 ]
 
 ROOT_URLCONF = 'campus_stay.urls'

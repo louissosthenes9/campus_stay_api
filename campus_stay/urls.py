@@ -20,6 +20,7 @@ router.register(r'users', UserViewSet)
 router.register(r'properties', PropertiesViewSet)
 router.register(r'universities', UniversitiesViewSet)
 router.register(r'campuses', CampusViewSet)
+router.register(r'reviews', 'reviews.api.views.PropertyReviewViewSet')
 
 urlpatterns = [
     path('api/v1/', include(router.urls)),
