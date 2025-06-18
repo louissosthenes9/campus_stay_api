@@ -1,12 +1,13 @@
 from rest_framework import serializers
-from favourites.models import Favourites
-from users.api.serializers import UserSerializer  
-from properties.api.serializers import PropertiesSerializer 
+from favourites.models import Favourites 
+from users.models import User 
+from properties.models import Properties
+
 
 class FavouritesSerializer(serializers.ModelSerializer):
     # Nested serializers for read operations
-    user = UserSerializer(read_only=True)
-    property = PropertiesSerializer(read_only=True)
+    user = User
+    property =Properties
     # Primary key fields for write operations
     user_id = serializers.PrimaryKeyRelatedField(
         source='user',
