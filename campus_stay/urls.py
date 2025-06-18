@@ -4,6 +4,7 @@ from django.urls import path,include
 from rest_framework.routers import DefaultRouter
 from reviews.api.views import PropertyReviewViewSet
 from users.api.views import UserViewSet
+from favourites.api.views import FavouritesViewSet
 from users.api.views import CustomTokenObtainPairView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from properties.api.views import PropertiesViewSet
@@ -22,6 +23,7 @@ router.register(r'properties', PropertiesViewSet)
 router.register(r'universities', UniversitiesViewSet)
 router.register(r'campuses', CampusViewSet)
 router.register(r'reviews',PropertyReviewViewSet,basename='propertyreview')
+router.register(r'favourites', FavouritesViewSet, basename='favourites')
 
 urlpatterns = [
     path('api/v1/', include(router.urls)),

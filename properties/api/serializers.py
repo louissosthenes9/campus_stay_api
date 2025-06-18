@@ -10,9 +10,6 @@ from typing import List, Optional
 
 class PropertyMediaSerializer(serializers.ModelSerializer):
     url = serializers.SerializerMethodField()
-    average_rating = serializers.SerializerMethodField()
-    review_count = serializers.SerializerMethodField()
-    is_recently_viewed = serializers.SerializerMethodField()
     
     class Meta:
         model = PropertyMedia
@@ -66,6 +63,9 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
     
     # Calculated fields
     distance_to_university = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+    is_recently_viewed = serializers.SerializerMethodField()
     
     # Separate image and video URLs for easier frontend handling
     images = serializers.SerializerMethodField()
@@ -109,8 +109,8 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         images = obj.media.filter(media_type='image').order_by('display_order', 'created_at')
         request = self.context.get('request')
         if request:
-            return [request.build_absolute_uri(img.file.url) for img in images]
-        return [img.file.url for img in images]
+            return [request.build_absolute_uri(img.file.url) for img in images if img.file]
+        return [img.file.url for img in images if img.file]
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField()))
     def get_videos(self, obj) -> List[str]:
@@ -118,8 +118,8 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         videos = obj.media.filter(media_type='video').order_by('display_order', 'created_at')
         request = self.context.get('request')
         if request:
-            return [request.build_absolute_uri(vid.file.url) for vid in videos]
-        return [vid.file.url for vid in videos]
+            return [request.build_absolute_uri(vid.file.url) for vid in videos if vid.file]
+        return [vid.file.url for vid in videos if vid.file]
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_primary_image(self, obj) -> Optional[str]:
@@ -129,7 +129,7 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             # Fallback to first image if no primary set
             primary_image = obj.media.filter(media_type='image').order_by('display_order', 'created_at').first()
         
-        if primary_image:
+        if primary_image and primary_image.file:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(primary_image.file.url)
@@ -147,7 +147,7 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             return None
             
         university = getattr(request.user.student_profile, 'university', None)
-        if not university:
+        if not university or not university.location:
             return None
         
         try:
@@ -161,6 +161,36 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             pass
         
         return None
+
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_average_rating(self, obj) -> Optional[float]:
+        """Get average rating from reviews."""
+        # Uncomment when you have Review model
+        # if hasattr(obj, 'reviews'):
+        #     avg_rating = obj.reviews.aggregate(Avg('rating'))['rating__avg']
+        #     return round(avg_rating, 1) if avg_rating else None
+        
+        # Temporary fallback using overall_score
+        return obj.overall_score
+    
+    @extend_schema_field(serializers.IntegerField())
+    def get_review_count(self, obj) -> int:
+        """Get total number of reviews."""
+        # Uncomment when you have Review model
+        # if hasattr(obj, 'reviews'):
+        #     return obj.reviews.count()
+        
+        # Temporary fallback
+        return 0
+    
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_recently_viewed(self, obj) -> bool:
+        """Check if property is in user's recently viewed list."""
+        request = self.context.get('request')
+        if request and request.session:
+            viewed_properties = request.session.get('recently_viewed_properties', [])
+            return obj.id in viewed_properties
+        return False
 
     @transaction.atomic
     def create(self, validated_data):
@@ -253,34 +283,3 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         if value > 120: 
             raise serializers.ValidationError("Lease duration cannot exceed 120 months.")
         return value
-    
-    @extend_schema_field(serializers.FloatField(allow_null=True))
-    def get_average_rating(self, obj) -> Optional[float]:
-        """Get average rating from reviews."""
-        # Uncomment when you have Review model
-        # if hasattr(obj, 'reviews'):
-        #     avg_rating = obj.reviews.aggregate(Avg('rating'))['rating__avg']
-        #     return round(avg_rating, 1) if avg_rating else None
-        
-        # Temporary fallback using overall_score
-        return obj.overall_score
-    
-    @extend_schema_field(serializers.IntegerField())
-    def get_review_count(self, obj) -> int:
-        """Get total number of reviews."""
-        # Uncomment when you have Review model
-        # if hasattr(obj, 'reviews'):
-        #     return obj.reviews.count()
-        
-        # Temporary fallback
-        return 0
-    
-    @extend_schema_field(serializers.BooleanField())
-    def get_is_recently_viewed(self, obj) -> bool:
-        """Check if property is in user's recently viewed list."""
-        request = self.context.get('request')
-        if request and request.session:
-            viewed_properties = request.session.get('recently_viewed_properties', [])
-            return obj.id in viewed_properties
-        return False
-
