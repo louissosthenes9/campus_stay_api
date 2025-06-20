@@ -83,25 +83,35 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                 cheap_properties, many=True, context={"request": request}
             ).data
             
-            # Top-rated properties (average rating >= 4.0)
-            
-            top_rated_properties = base_queryset.filter(
-                average_rating__gte=4.0
-            ).order_by("-average_rating")[:limit]
+            # Top-rated properties (using reviews)
+            from django.db.models import Avg, Count
+            top_rated_properties = (
+                base_queryset.annotate(
+                    avg_rating=Avg('reviews__rating'),
+                    review_count=Count('reviews')
+                )
+                .filter(review_count__gt=0)
+                .order_by('-avg_rating', '-review_count')[:limit]
+            )
             categories["top_rated"] = self.get_serializer(
                 top_rated_properties, many=True, context={"request": request}
             ).data
             
             # Special needs properties (wheelchair accessible)
             special_needs_properties = base_queryset.filter(
-                is_special_needs =True
+                is_special_needs=True
             ).order_by("-created_at")[:limit]
             categories["special_needs"] = self.get_serializer(
                 special_needs_properties, many=True, context={"request": request}
             ).data
             
+            # Popular properties (based on view count)
+            popular_properties = base_queryset.order_by("-view_count")[:limit]
+            categories["popular"] = self.get_serializer(
+                popular_properties, many=True, context={"request": request}
+            ).data
+            
             # Recently viewed properties (if user is authenticated)
-            recently_viewed_properties = []
             if request.user.is_authenticated:
                 recently_viewed_properties = base_queryset.filter(
                     id__in=request.user.recently_viewed_properties.all()
@@ -109,40 +119,28 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                 categories["recently_viewed"] = self.get_serializer(
                     recently_viewed_properties, many=True, context={"request": request}
                 ).data
-            else:
-                logger.info(f"User {request.user.id} is not authenticated, skipping recently viewed properties.")
-            # If no recently viewed properties, fallback to popular properties
-            if not recently_viewed_properties:
-                popular_properties = base_queryset.order_by("-average_rating")[:limit]
-                categories["recently_viewed"] = self.get_serializer(
-                    popular_properties, many=True, context={"request": request}
-                ).data
-            else:
-                logger.info(f"Recently viewed properties found for user {request.user.id}: {len(recently_viewed_properties)}")
-            # If no popular properties, fallback to any available properties
+            
+            # If no recently viewed properties, use popular properties as fallback
             if not categories["recently_viewed"]:
-                fallback_properties = base_queryset.order_by("-created_at")[:limit]
-                categories["recently_viewed"] = self.get_serializer(
-                    fallback_properties, many=True, context={"request": request}
-                ).data
+                categories["recently_viewed"] = categories["popular"]
             
             # Near university properties
             near_university_properties = []
             if request.user.is_authenticated:
                 try:
-                    # Check if user is a student with a university
                     if (
                         hasattr(request.user, "roles")
                         and request.user.roles == "student"
                         and hasattr(request.user, "student_profile")
                         and request.user.student_profile.university_id
                     ):
-                        university = University.objects.get(id=request.user.student_profile.university_id)
+                        university = University.objects.get(
+                            id=request.user.student_profile.university_id
+                        )
                         near_university_properties = base_queryset.annotate(
                             distance=Distance("location", university.location)
                         ).filter(distance__lte=D(km=distance_km)).order_by("distance")[:limit]
                     
-                    # Fallback: Properties near any university
                     elif not near_university_properties:
                         popular_university = University.objects.first()
                         if popular_university:
@@ -160,10 +158,8 @@ class PropertiesViewSet(viewsets.ModelViewSet):
             
             return Response(categories)
         except Exception as e:
-            logger.error(f"Error in marketing_categories for user {request.user.id}: {str(e)}", exc_info=True)
+            logger.error(f"Error in marketing_categories: {str(e)}", exc_info=True)
             raise
-        
-        
 
     # Queryset Customization
     def get_queryset(self):
