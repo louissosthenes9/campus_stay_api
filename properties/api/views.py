@@ -69,6 +69,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                 "top_rated": [],
                 "special_needs": [],
                 "recently_viewed": [],
+                "popular": [],
             }
             
             # Base queryset for available properties
@@ -81,6 +82,49 @@ class PropertiesViewSet(viewsets.ModelViewSet):
             categories["cheap"] = self.get_serializer(
                 cheap_properties, many=True, context={"request": request}
             ).data
+            
+            # Top-rated properties (average rating >= 4.0)
+            
+            top_rated_properties = base_queryset.filter(
+                average_rating__gte=4.0
+            ).order_by("-average_rating")[:limit]
+            categories["top_rated"] = self.get_serializer(
+                top_rated_properties, many=True, context={"request": request}
+            ).data
+            
+            # Special needs properties (wheelchair accessible)
+            special_needs_properties = base_queryset.filter(
+                is_special_needs =True
+            ).order_by("-created_at")[:limit]
+            categories["special_needs"] = self.get_serializer(
+                special_needs_properties, many=True, context={"request": request}
+            ).data
+            
+            # Recently viewed properties (if user is authenticated)
+            recently_viewed_properties = []
+            if request.user.is_authenticated:
+                recently_viewed_properties = base_queryset.filter(
+                    id__in=request.user.recently_viewed_properties.all()
+                ).order_by("-last_viewed")[:limit]
+                categories["recently_viewed"] = self.get_serializer(
+                    recently_viewed_properties, many=True, context={"request": request}
+                ).data
+            else:
+                logger.info(f"User {request.user.id} is not authenticated, skipping recently viewed properties.")
+            # If no recently viewed properties, fallback to popular properties
+            if not recently_viewed_properties:
+                popular_properties = base_queryset.order_by("-average_rating")[:limit]
+                categories["recently_viewed"] = self.get_serializer(
+                    popular_properties, many=True, context={"request": request}
+                ).data
+            else:
+                logger.info(f"Recently viewed properties found for user {request.user.id}: {len(recently_viewed_properties)}")
+            # If no popular properties, fallback to any available properties
+            if not categories["recently_viewed"]:
+                fallback_properties = base_queryset.order_by("-created_at")[:limit]
+                categories["recently_viewed"] = self.get_serializer(
+                    fallback_properties, many=True, context={"request": request}
+                ).data
             
             # Near university properties
             near_university_properties = []
@@ -118,6 +162,8 @@ class PropertiesViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error in marketing_categories for user {request.user.id}: {str(e)}", exc_info=True)
             raise
+        
+        
 
     # Queryset Customization
     def get_queryset(self):

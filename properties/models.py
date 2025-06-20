@@ -12,6 +12,17 @@ class Properties(models.Model):
         ('self_contained', 'Self Contained'),
         ('condo', 'Condo'),
     )
+
+    @property
+    def average_rating(self):
+        """Calculate and return the average rating for this property."""
+        if not hasattr(self, '_average_rating'):
+            reviews = self.reviews.all()
+            if not reviews.exists():
+                self._average_rating = 0
+            else:
+                self._average_rating = reviews.aggregate(models.Avg('rating'))['rating__avg']
+        return self._average_rating
     WINDOWS_TYPE_CHOICES = (
         ('Aluminum', 'Aluminum'),
         ('Nyavu', 'Nyavu'),
