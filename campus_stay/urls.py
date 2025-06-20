@@ -8,6 +8,7 @@ from favourites.api.views import FavouritesViewSet
 from users.api.views import CustomTokenObtainPairView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from properties.api.views import PropertiesViewSet
+from properties import urls as properties_urls
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
@@ -27,6 +28,7 @@ router.register(r'favourites', FavouritesViewSet, basename='favourites')
 
 urlpatterns = [
     path('api/v1/', include(router.urls)),
+    path('api/v1/properties/', include(properties_urls)),
     path('api/v1/auth/token/',CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/v1/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v1/auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
