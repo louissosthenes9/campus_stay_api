@@ -68,7 +68,6 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                 "near_university": [],
                 "top_rated": [],
                 "special_needs": [],
-                "recently_viewed": [],
                 "popular": [],
             }
             
@@ -110,19 +109,6 @@ class PropertiesViewSet(viewsets.ModelViewSet):
             categories["popular"] = self.get_serializer(
                 popular_properties, many=True, context={"request": request}
             ).data
-            
-            # Recently viewed properties (if user is authenticated)
-            if request.user.is_authenticated:
-                recently_viewed_properties = base_queryset.filter(
-                    id__in=request.user.recently_viewed_properties.all()
-                ).order_by("-last_viewed")[:limit]
-                categories["recently_viewed"] = self.get_serializer(
-                    recently_viewed_properties, many=True, context={"request": request}
-                ).data
-            
-            # If no recently viewed properties, use popular properties as fallback
-            if not categories["recently_viewed"]:
-                categories["recently_viewed"] = categories["popular"]
             
             # Near university properties
             near_university_properties = []
