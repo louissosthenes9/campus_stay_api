@@ -1,5 +1,5 @@
 """
-Django production settings for campus_stay project with Supabase and S3.
+Django production settings for campus_stay project with Supabase and DigitalOcean Spaces.
 """
 
 from pathlib import Path
@@ -135,16 +135,16 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# Filebase S3-Compatible Configuration
+# DigitalOcean Spaces Configuration (S3-Compatible)
 AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
-AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL') 
+AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL')  # DigitalOcean Spaces endpoint
 AWS_S3_SIGNATURE_VERSION = env('AWS_S3_SIGNATURE_VERSION', default='s3v4')
 AWS_DEFAULT_ACL = env('AWS_DEFAULT_ACL', default=None)
+AWS_LOCATION = 'media'  # Default location for media files in the bucket
 
-# Filebase-specific settings
+# DigitalOcean Spaces specific settings
 AWS_S3_USE_SSL = True
 AWS_S3_VERIFY = True
 AWS_S3_ADDRESSING_STYLE = 'virtual'
@@ -153,16 +153,15 @@ AWS_S3_ADDRESSING_STYLE = 'virtual'
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
 
-# Static files (CSS, JavaScript, Images) - served from Filebase
-STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.filebase.com/static/'
+# Static files (CSS, JavaScript, Images) - served from DigitalOcean Spaces
+STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.nyc3.digitaloceanspaces.com/static/'
 STATIC_ROOT = 'static/'
 
-# Media files - served from Filebase
-MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.filebase.com/media/'
+# Media files - served from DigitalOcean Spaces
+MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.nyc3.digitaloceanspaces.com/media/'
 MEDIA_ROOT = 'media/'
 
-# Filebase S3 Storage Configuration
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.filebase.com'
+# DigitalOcean Spaces S3 Storage Configuration
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
 }
