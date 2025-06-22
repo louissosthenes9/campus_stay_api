@@ -45,7 +45,9 @@ logger = logging.getLogger(__name__)
 class PropertiesViewSet(viewsets.ModelViewSet):
     """ViewSet for managing property CRUD operations with media and proximity filtering."""
     
-    queryset = Properties.objects.all()
+    queryset = Properties.objects.prefetch_related(
+        "review"
+    )
     serializer_class = PropertiesSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
