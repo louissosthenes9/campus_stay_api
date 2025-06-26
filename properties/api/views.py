@@ -238,6 +238,10 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                             display_order=i,
                             is_primary=(i == 0),
                         )
+                        logger.info(f"Media created - ID: {media_instance.id}")
+                        logger.info(f"File name: {media_instance.file.name}")
+                        logger.info(f"File URL: {media_instance.file.url}")
+                        logger.info(f"File size: {media_instance.file.size}")
                     except Exception as e:
                         logger.error(f"Error uploading image {image.name} to property {property_instance.id}: {str(e)}")
                         raise
