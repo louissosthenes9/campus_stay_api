@@ -140,34 +140,36 @@ AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL')  # DigitalOcean Spaces endpoint
-AWS_S3_SIGNATURE_VERSION = env('AWS_S3_SIGNATURE_VERSION', default='s3v4')
-AWS_DEFAULT_ACL = env('AWS_DEFAULT_ACL', default=None)
-AWS_LOCATION = 'media'  # Default location for media files in the bucket
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_DEFAULT_ACL = 'public-read'
+AWS_LOCATION = 'media'
 
 # DigitalOcean Spaces specific settings
 AWS_S3_USE_SSL = True
 AWS_S3_VERIFY = True
 AWS_S3_ADDRESSING_STYLE = 'virtual'
+AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_AUTH = False
+
+# IMPORTANT: CDN domain for serving files to users
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.nyc3.cdn.digitaloceanspaces.com'
 
 # File Storage Settings
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
 
-# Static files (CSS, JavaScript, Images) - served from DigitalOcean Spaces
-STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.nyc3.digitaloceanspaces.com/static/'
-STATIC_ROOT = 'static/'
+# FIXED: Use CDN domain for both static and media URLs
+STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
 
-# Media files - served from DigitalOcean Spaces
-MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.nyc3.digitaloceanspaces.com/media/'
-MEDIA_ROOT = 'media/'
+# Remove these - not needed when using S3 storage
+# STATIC_ROOT = 'media/'
+# MEDIA_ROOT = 'media/'
 
 # DigitalOcean Spaces S3 Storage Configuration
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
 }
-AWS_S3_FILE_OVERWRITE = False
-AWS_LOCATION = 'media'
-AWS_QUERYSTRING_AUTH = False
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
