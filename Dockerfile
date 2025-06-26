@@ -18,11 +18,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     libpq-dev \
     libgdal-dev \
+    libgdal28 \
     gdal-bin \
     python3-gdal \
     binutils \
     libproj-dev \
+    libgeos-dev \
+    libgeos-c1v5 \
+    libspatialite-dev \
+    libspatialindex-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Set GDAL environment variables
+ENV GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
+ENV GEOS_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgeos_c.so
 
 # Set work directory
 WORKDIR /app
@@ -37,7 +49,10 @@ RUN poetry config virtualenvs.create false \
 # Copy only the dependency files first to leverage Docker cache
 COPY pyproject.toml poetry.lock* /app/
 
-# Install Python dependencies
+# Verify GDAL installation and get version
+RUN gdal-config --version
+
+# Install Python dependencies with GDAL support
 RUN poetry install --only=main --no-interaction --no-ansi --no-root \
     && rm -rf $POETRY_CACHE_DIR
 
