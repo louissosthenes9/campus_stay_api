@@ -140,9 +140,8 @@ AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL')  # DigitalOcean Spaces endpoint
-AWS_S3_SIGNATURE_VERSION = 's3v4'
 AWS_DEFAULT_ACL = 'public-read'
-AWS_LOCATION = 'media'
+AWS_LOCATION = 'media/'
 
 # DigitalOcean Spaces specific settings
 AWS_S3_USE_SSL = True
@@ -250,6 +249,16 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'boto3': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+        'propagate': True,
+    },
+    'botocore': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+        'propagate': True,
+    },
         '': {
             'handlers': ['console'],
             'level': 'DEBUG',
