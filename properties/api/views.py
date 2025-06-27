@@ -46,7 +46,9 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     """ViewSet for managing property CRUD operations with media and proximity filtering."""
     
     queryset = Properties.objects.prefetch_related(
-        "review"
+        'reviews__reviewer',  # Changed from 'reviews__user' to 'reviews__reviewer'
+        'media',
+        'amenities__amenity'
     )
     serializer_class = PropertiesSerializer
     permission_classes = [permissions.IsAuthenticated]
