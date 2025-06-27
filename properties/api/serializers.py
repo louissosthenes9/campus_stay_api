@@ -5,7 +5,7 @@ from django.contrib.gis.geos import Point
 from django.db.models import Avg
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from properties.models import Properties, PropertyAmenity, PropertyMedia, PropertyNearByPlaces, NearByPlaces, Amenity
-from reviews.models import PropertyReviews  # Import the PropertyReviews model
+from reviews.models import PropertyReview  
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from typing import List, Optional
@@ -93,7 +93,7 @@ class PropertyReviewSerializer(serializers.ModelSerializer):
     reviewer_username = serializers.CharField(source='user.username', read_only=True)
     
     class Meta:
-        model = PropertyReviews
+        model = PropertyReview
         fields = ['id', 'rating', 'comment', 'reviewer_name', 'reviewer_username', 'created_at']
 
 
