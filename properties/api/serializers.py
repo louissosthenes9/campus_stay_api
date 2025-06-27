@@ -5,7 +5,7 @@ from django.contrib.gis.geos import Point
 from django.db.models import Avg
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from properties.models import Properties, PropertyAmenity, PropertyMedia, PropertyNearByPlaces, NearByPlaces, Amenity
-from reviews.models import PropertyReview  
+from reviews.models import PropertyReview  # Import the PropertyReview model
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from typing import List, Optional
@@ -89,8 +89,8 @@ class PropertyNearByPlacesSerializer(serializers.ModelSerializer):
 
 # Simple review serializer for property details
 class PropertyReviewSerializer(serializers.ModelSerializer):
-    reviewer_name = serializers.CharField(source='user.get_full_name', read_only=True)
-    reviewer_username = serializers.CharField(source='user.username', read_only=True)
+    reviewer_name = serializers.CharField(source='reviewer.get_full_name', read_only=True)
+    reviewer_username = serializers.CharField(source='reviewer.username', read_only=True)
     
     class Meta:
         model = PropertyReview
@@ -160,7 +160,7 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
     @extend_schema_field(serializers.ListField(child=PropertyReviewSerializer()))
     def get_recent_reviews(self, obj) -> List[dict]:
         """Get the 3 most recent reviews for the property"""
-        recent_reviews = obj.reviews.select_related('user').order_by('-created_at')[:3]
+        recent_reviews = obj.reviews.select_related('reviewer').order_by('-created_at')[:3]
         return PropertyReviewSerializer(recent_reviews, many=True).data
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField()))
