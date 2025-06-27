@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.gis.db import models as gis_models
+from cloudinary.models import CloudinaryField
 
 class Properties(models.Model):
     PROPERTY_TYPE_CHOICES= (
@@ -83,7 +84,12 @@ class PropertyMedia(models.Model):
     )
     property = models.ForeignKey('properties.Properties', on_delete=models.CASCADE, related_name='media')
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default='image')
-    file = models.FileField(upload_to='properties/')
+    file = CloudinaryField(
+        folder='properties/',
+        resource_type='auto',  # Automatically detect if it's an image or video
+        overwrite=True,
+        format='webp'  # Automatically convert to webp for better compression
+    )
     media_hash = models.CharField(max_length=100, blank=True, null=True)    
     display_order = models.PositiveIntegerField(blank=True, null=True)
     is_primary = models.BooleanField(default=False)
@@ -109,7 +115,6 @@ class Amenity(models.Model):
 
     class Meta:
         verbose_name_plural = "Amenities"   
-
 
 class PropertyAmenity(models.Model):
     property = models.ForeignKey('properties.Properties', on_delete=models.CASCADE, related_name='amenities')

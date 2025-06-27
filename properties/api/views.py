@@ -228,34 +228,47 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                             logger.error(f"Error adding amenity {amenity_id} to property {property_instance.id}: {str(e)}")
                             raise
 
-                # Handle media uploads
+                # Handle image uploads with Cloudinary
                 for i, image in enumerate(images):
                     try:
-                        PropertyMedia.objects.create(
+                        # Create the media instance - Cloudinary will handle the upload
+                        media_instance = PropertyMedia.objects.create(
                             property=property_instance,
                             media_type="image",
                             file=image,
                             display_order=i,
                             is_primary=(i == 0),
                         )
-                        logger.info(f"Media created - ID: {media_instance.id}")
-                        logger.info(f"File name: {media_instance.file.name}")
-                        logger.info(f"File URL: {media_instance.file.url}")
-                        logger.info(f"File size: {media_instance.file.size}")
+                        
+                        # Log successful upload
+                        logger.info(f"Image uploaded to Cloudinary - ID: {media_instance.id}")
+                        logger.info(f"File name: {image.name}")
+                        logger.info(f"Cloudinary URL: {media_instance.file.url}")
+                        logger.info(f"File size: {image.size}")
+                        
                     except Exception as e:
-                        logger.error(f"Error uploading image {image.name} to property {property_instance.id}: {str(e)}")
+                        logger.error(f"Error uploading image {image.name} to Cloudinary: {str(e)}")
                         raise
 
-                for i, video in enumerate(videos):
+                # Handle video uploads with Cloudinary
+                for i, video in enumerate(videos, start=len(images)):  # Continue display order after images
                     try:
-                        PropertyMedia.objects.create(
+                        # Create the media instance - Cloudinary will handle the upload
+                        media_instance = PropertyMedia.objects.create(
                             property=property_instance,
                             media_type="video",
                             file=video,
                             display_order=i,
                         )
+                        
+                        # Log successful upload
+                        logger.info(f"Video uploaded to Cloudinary - ID: {media_instance.id}")
+                        logger.info(f"File name: {video.name}")
+                        logger.info(f"Cloudinary URL: {media_instance.file.url}")
+                        logger.info(f"File size: {video.size}")
+                        
                     except Exception as e:
-                        logger.error(f"Error uploading video {video.name} to property {property_instance.id}: {str(e)}")
+                        logger.error(f"Error uploading video {video.name} to Cloudinary: {str(e)}")
                         raise
 
                 # Prepare response
@@ -305,33 +318,49 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                         logger.error(f"Error deleting media for property {instance.id}: {str(e)}")
                         raise
 
-                # Add new images
-                existing_images_count = instance.media.filter(media_type="image").count()
-                for i, image in enumerate(images):
+                # Add new images with Cloudinary
+                existing_images = instance.media.filter(media_type="image").order_by('-display_order').first()
+                existing_count = existing_images.display_order + 1 if existing_images else 0
+                
+                for i, image in enumerate(images, start=existing_count):
                     try:
-                        PropertyMedia.objects.create(
+                        # Create the media instance - Cloudinary will handle the upload
+                        media_instance = PropertyMedia.objects.create(
                             property=instance,
                             media_type="image",
                             file=image,
-                            display_order=existing_images_count + i,
-                            is_primary=(existing_images_count == 0 and i == 0),
+                            display_order=i,
+                            is_primary=(existing_count == 0 and i == 0),  # Set as primary if first image
                         )
+                        
+                        logger.info(f"Image uploaded to Cloudinary - ID: {media_instance.id}")
+                        logger.info(f"File name: {image.name}")
+                        logger.info(f"Cloudinary URL: {media_instance.file.url}")
+                        
                     except Exception as e:
-                        logger.error(f"Error uploading image {image.name} to property {instance.id}: {str(e)}")
+                        logger.error(f"Error uploading image {image.name} to Cloudinary: {str(e)}")
                         raise
 
-                # Add new videos
-                existing_videos_count = instance.media.filter(media_type="video").count()
-                for i, video in enumerate(videos):
+                # Add new videos with Cloudinary
+                existing_videos = instance.media.filter(media_type="video").order_by('-display_order').first()
+                video_start = existing_videos.display_order + 1 if existing_videos else (existing_count + len(images))
+                
+                for i, video in enumerate(videos, start=video_start):
                     try:
-                        PropertyMedia.objects.create(
+                        # Create the media instance - Cloudinary will handle the upload
+                        media_instance = PropertyMedia.objects.create(
                             property=instance,
                             media_type="video",
                             file=video,
-                            display_order=existing_videos_count + i,
+                            display_order=i,
                         )
+                        
+                        logger.info(f"Video uploaded to Cloudinary - ID: {media_instance.id}")
+                        logger.info(f"File name: {video.name}")
+                        logger.info(f"Cloudinary URL: {media_instance.file.url}")
+                        
                     except Exception as e:
-                        logger.error(f"Error uploading video {video.name} to property {instance.id}: {str(e)}")
+                        logger.error(f"Error uploading video {video.name} to Cloudinary: {str(e)}")
                         raise
 
                 # Update amenities
@@ -390,33 +419,49 @@ class PropertiesViewSet(viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
-                # Add images
-                existing_images_count = property_instance.media.filter(media_type="image").count()
-                for i, image in enumerate(images):
+                # Add images with Cloudinary
+                existing_images = property_instance.media.filter(media_type="image").order_by('-display_order').first()
+                existing_count = existing_images.display_order + 1 if existing_images else 0
+                
+                for i, image in enumerate(images, start=existing_count):
                     try:
-                        PropertyMedia.objects.create(
+                        # Create the media instance - Cloudinary will handle the upload
+                        media_instance = PropertyMedia.objects.create(
                             property=property_instance,
                             media_type="image",
                             file=image,
-                            display_order=existing_images_count + i,
-                            is_primary=(existing_images_count == 0 and i == 0),
+                            display_order=i,
+                            is_primary=(existing_count == 0 and i == 0),  # Set as primary if first image
                         )
+                        
+                        logger.info(f"Image added to Cloudinary - ID: {media_instance.id}")
+                        logger.info(f"File name: {image.name}")
+                        logger.info(f"Cloudinary URL: {media_instance.file.url}")
+                        
                     except Exception as e:
-                        logger.error(f"Error adding image {image.name} to property {property_instance.id}: {str(e)}")
+                        logger.error(f"Error uploading image {image.name} to Cloudinary: {str(e)}")
                         raise
 
-                # Add videos
-                existing_videos_count = property_instance.media.filter(media_type="video").count()
-                for i, video in enumerate(videos):
+                # Add videos with Cloudinary
+                existing_videos = property_instance.media.filter(media_type="video").order_by('-display_order').first()
+                video_start = existing_videos.display_order + 1 if existing_videos else (existing_count + len(images))
+                
+                for i, video in enumerate(videos, start=video_start):
                     try:
-                        PropertyMedia.objects.create(
+                        # Create the media instance - Cloudinary will handle the upload
+                        media_instance = PropertyMedia.objects.create(
                             property=property_instance,
                             media_type="video",
                             file=video,
-                            display_order=existing_videos_count + i,
+                            display_order=i,
                         )
+                        
+                        logger.info(f"Video added to Cloudinary - ID: {media_instance.id}")
+                        logger.info(f"File name: {video.name}")
+                        logger.info(f"Cloudinary URL: {media_instance.file.url}")
+                        
                     except Exception as e:
-                        logger.error(f"Error adding video {video.name} to property {property_instance.id}: {str(e)}")
+                        logger.error(f"Error uploading video {video.name} to Cloudinary: {str(e)}")
                         raise
 
                 serializer = self.get_serializer(property_instance, context={"request": request})

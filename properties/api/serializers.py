@@ -10,16 +10,50 @@ from typing import List, Optional
 
 class PropertyMediaSerializer(serializers.ModelSerializer):
     url = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
     
     class Meta:
         model = PropertyMedia
-        fields = ['id', 'media_type', 'url', 'display_order', 'is_primary', 'created_at']
+        fields = ['id', 'media_type', 'url', 'thumbnail_url', 'display_order', 'is_primary', 'created_at']
     
     @extend_schema_field(serializers.URLField)
     def get_url(self, obj) -> Optional[str]:
+        if not obj.file:
+            return None
+        
+        # For Cloudinary, we can directly use the URL
+        if hasattr(obj.file, 'url'):
+            return obj.file.url
+            
+        # Fallback for non-Cloudinary storage
         request = self.context.get('request')
-        if request and obj.file:
+        if request:
             return request.build_absolute_uri(obj.file.url)
+        return None
+    
+    @extend_schema_field(serializers.URLField)
+    def get_thumbnail_url(self, obj) -> Optional[str]:
+        if not obj.file or obj.media_type != 'image':
+            return None
+            
+        try:
+            # Generate a thumbnail URL with Cloudinary transformations
+            if hasattr(obj.file, 'url'):
+                # This adds Cloudinary transformations for a thumbnail
+                base_url = obj.file.url
+                # Add transformations: 300px width, auto height, auto quality, auto format
+                if 'upload/' in base_url:
+                    return base_url.replace('upload/', 'upload/w_300,h_200,c_fill,q_auto,f_auto/')
+                return base_url
+                
+            # Fallback for non-Cloudinary storage
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error generating thumbnail URL: {str(e)}")
+            
         return None
 
 
@@ -69,8 +103,10 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
     
     # Separate image and video URLs for easier frontend handling
     images = serializers.SerializerMethodField()
+    image_thumbnails = serializers.SerializerMethodField()
     videos = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
+    primary_image_thumbnail = serializers.SerializerMethodField()
     
     # Write-only fields for creating/updating
     amenity_ids = serializers.ListField(
@@ -94,7 +130,7 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             'transportation_score', 'amenities_score',
             'overall_score', 'distance_to_university',
             'amenities', 'nearby_places', 'media',
-            'images', 'videos', 'primary_image',
+            'images', 'image_thumbnails', 'videos', 'primary_image', 'primary_image_thumbnail',
             'amenity_ids', 'created_at', 'updated_at',
             'is_special_needs', 'view_count', 'last_viewed',
             'average_rating', 'review_count', 'is_recently_viewed'
@@ -109,8 +145,8 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         images = obj.media.filter(media_type='image').order_by('display_order', 'created_at')
         request = self.context.get('request')
         if request:
-            return [request.build_absolute_uri(img.file.url) for img in images if img.file]
-        return [img.file.url for img in images if img.file]
+            return [img.file.url for img in images if img.file]  # Cloudinary URLs are already absolute
+        return [img.file.url for img in images if img.file]  # Fallback
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField()))
     def get_videos(self, obj) -> List[str]:
@@ -130,11 +166,41 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             primary_image = obj.media.filter(media_type='image').order_by('display_order', 'created_at').first()
         
         if primary_image and primary_image.file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(primary_image.file.url)
+            # Cloudinary URLs are already absolute
             return primary_image.file.url
         return None
+        
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_primary_image_thumbnail(self, obj) -> Optional[str]:
+        """Get primary image thumbnail URL"""
+        primary_image = obj.media.filter(media_type='image', is_primary=True).first()
+        if not primary_image:
+            # Fallback to first image if no primary set
+            primary_image = obj.media.filter(media_type='image').order_by('display_order', 'created_at').first()
+        
+        if primary_image and primary_image.file and hasattr(primary_image.file, 'url'):
+            # Generate thumbnail URL with Cloudinary transformations
+            base_url = primary_image.file.url
+            if 'upload/' in base_url:
+                return base_url.replace('upload/', 'upload/w_600,h_400,c_fill,q_auto,f_auto/')
+            return base_url
+        return None
+        
+    @extend_schema_field(serializers.ListField(child=serializers.URLField()))
+    def get_image_thumbnails(self, obj) -> List[str]:
+        """Get all image thumbnail URLs"""
+        images = obj.media.filter(media_type='image').order_by('display_order', 'created_at')
+        thumbnails = []
+        
+        for img in images:
+            if hasattr(img.file, 'url'):
+                base_url = img.file.url
+                if 'upload/' in base_url:
+                    thumbnails.append(base_url.replace('upload/', 'upload/w_300,h_200,c_fill,q_auto,f_auto/'))
+                else:
+                    thumbnails.append(base_url)
+        
+        return thumbnails
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_distance_to_university(self, obj) -> Optional[float]:

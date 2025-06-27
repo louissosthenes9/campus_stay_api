@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'user_messages',
     'reviews',
     'favourites',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 # Site ID required for django-allauth
@@ -148,8 +150,19 @@ AWS_S3_VERIFY = True
 AWS_S3_ADDRESSING_STYLE = 'virtual'
 
 # File Storage Settings
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+# Comment out or remove the S3 storage settings if you want to use Cloudinary for media files
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+
+# Cloudinary settings
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': env('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': env('CLOUDINARY_API_KEY'),
+    'API_SECRET': env('CLOUDINARY_API_SECRET'),
+}
+
+# Use Cloudinary for media files
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Static files (CSS, JavaScript, Images) - served from Filebase
 STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.filebase.com/static/'
