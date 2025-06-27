@@ -18,9 +18,25 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+class ConditionalAuthenticationPermission(permissions.BasePermission):
+    """
+    Custom permission class that allows GET requests without authentication
+    but requires authentication for POST, PUT, PATCH, DELETE requests.
+    """
+    
+    def has_permission(self, request, view):
+        # Allow GET requests (list, retrieve) without authentication
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        # Require authentication for all other methods (POST, PUT, PATCH, DELETE)
+        return request.user and request.user.is_authenticated
+
+
 @extend_schema_view(
     list=extend_schema(
-        description="List all available properties with optional filtering.",
+        description="List all available properties with optional filtering. No authentication required.",
         parameters=[
             OpenApiParameter(
                 name="university_id",
@@ -36,11 +52,11 @@ logger = logging.getLogger(__name__)
             ),
         ],
     ),
-    create=extend_schema(description="Create a new property with media and amenities."),
-    retrieve=extend_schema(description="Retrieve detailed information about a specific property."),
-    update=extend_schema(description="Update property information, media, and amenities."),
-    partial_update=extend_schema(description="Partially update property information."),
-    destroy=extend_schema(description="Delete a property."),
+    create=extend_schema(description="Create a new property with media and amenities. Authentication required."),
+    retrieve=extend_schema(description="Retrieve detailed information about a specific property. No authentication required."),
+    update=extend_schema(description="Update property information, media, and amenities. Authentication required."),
+    partial_update=extend_schema(description="Partially update property information. Authentication required."),
+    destroy=extend_schema(description="Delete a property. Authentication required."),
 )
 class PropertiesViewSet(viewsets.ModelViewSet):
     """ViewSet for managing property CRUD operations with media and proximity filtering."""
@@ -51,7 +67,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
         'amenities__amenity'
     )
     serializer_class = PropertiesSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [ConditionalAuthenticationPermission]  # Updated permission class
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["property_type", "price", "bedrooms", "toilets", "is_furnished"]
@@ -62,7 +78,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     # Custom Actions
     @action(detail=False, methods=["get"], url_path="marketing-categories")
     def marketing_categories(self, request):
-        """Retrieve properties categorized for marketing page display."""
+        """Retrieve properties categorized for marketing page display. No authentication required."""
         try:
             limit = int(request.query_params.get("limit", 6))
             distance_km = float(request.query_params.get("distance", 5))
@@ -114,7 +130,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                 popular_properties, many=True, context={"request": request}
             ).data
             
-            # Near university properties
+            # Near university properties - modified to handle unauthenticated users
             near_university_properties = []
             if request.user.is_authenticated:
                 try:
@@ -141,6 +157,16 @@ class PropertiesViewSet(viewsets.ModelViewSet):
                     logger.warning(f"University not found for user {request.user.id}")
                 except Exception as e:
                     logger.error(f"Error fetching near-university properties: {str(e)}")
+            else:
+                # For unauthenticated users, show properties near the most popular university
+                try:
+                    popular_university = University.objects.first()
+                    if popular_university:
+                        near_university_properties = base_queryset.annotate(
+                            distance=Distance("location", popular_university.location)
+                        ).filter(distance__lte=D(km=distance_km)).order_by("distance")[:limit]
+                except Exception as e:
+                    logger.error(f"Error fetching near-university properties for unauthenticated user: {str(e)}")
             
             categories["near_university"] = self.get_serializer(
                 near_university_properties, many=True, context={"request": request}
@@ -176,7 +202,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
 
     # Create Operations
     def create(self, request, *args, **kwargs):
-        """Create a new property with associated media and amenities."""
+        """Create a new property with associated media and amenities. Authentication required."""
         logger.info(f"==== Incoming Property Create Request ====\n"
                     f"User: {request.user.id}\n"
                     f"Data: {dict(request.data)}\n"
@@ -283,7 +309,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
 
     # Update Operations
     def update(self, request, *args, **kwargs):
-        """Update a property with associated media and amenities."""
+        """Update a property with associated media and amenities. Authentication required."""
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
         logger.info(f"Updating property {instance.id} by user {request.user.id}")
@@ -390,7 +416,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
 
     # Media Management Actions
     @extend_schema(
-        description="Add media files to an existing property.",
+        description="Add media files to an existing property. Authentication required.",
         parameters=[
             OpenApiParameter(
                 name="images",
@@ -410,7 +436,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=["post"], url_path="add-media")
     def add_media(self, request, pk=None):
-        """Add media files to an existing property."""
+        """Add media files to an existing property. Authentication required."""
         property_instance = self.get_object()
         images = request.FILES.getlist("images", [])
         videos = request.FILES.getlist("videos", [])
@@ -474,7 +500,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
             raise
 
     @extend_schema(
-        description="Remove specific media from a property.",
+        description="Remove specific media from a property. Authentication required.",
         parameters=[
             OpenApiParameter(
                 name="media_id",
@@ -486,7 +512,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=["delete"], url_path=r"remove-media/(?P<media_id>[^/.]+)")
     def remove_media(self, request, pk=None, media_id=None):
-        """Remove specific media from a property."""
+        """Remove specific media from a property. Authentication required."""
         property_instance = self.get_object()
 
         try:
@@ -503,7 +529,7 @@ class PropertiesViewSet(viewsets.ModelViewSet):
 
     # Student-Specific Actions
     @extend_schema(
-        description="Retrieve properties near a student's university.",
+        description="Retrieve properties near a student's university. Authentication required for student users.",
         parameters=[
             OpenApiParameter(
                 name="distance",
@@ -513,9 +539,9 @@ class PropertiesViewSet(viewsets.ModelViewSet):
             ),
         ],
     )
-    @action(detail=False, methods=["get"], url_path="near-university")
+    @action(detail=False, methods=["get"], url_path="near-university", permission_classes=[permissions.IsAuthenticated])
     def near_university(self, request):
-        """Retrieve properties near the student's university."""
+        """Retrieve properties near the student's university. Authentication required."""
         if request.user.roles != "student":
             logger.warning(f"Non-student user {request.user.id} attempted to access near-university endpoint")
             return Response({"error": "This endpoint is only for students"}, status=status.HTTP_403_FORBIDDEN)
