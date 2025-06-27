@@ -1,11 +1,16 @@
 """
-Django production settings for campus_stay project with Supabase and DigitalOcean Spaces.
+Django production settings for campus_stay project with Supabase and Cloudinary.
 """
 
 from pathlib import Path
 import os
 import environ
 from datetime import timedelta
+
+# Cloudinary imports
+import cloudinary
+import cloudinary.api
+import cloudinary.uploader
 
 # Initialize environ
 env = environ.Env()
@@ -37,7 +42,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_gis',
     'rest_framework_simplejwt',
-    'storages',
     'corsheaders',
     'drf_spectacular',
     'django_filters',
@@ -48,13 +52,14 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',  # Google provider
     'rest_auth',  # REST API endpoints for authentication
     'rest_auth.registration',  # REST API endpoints for registration
+    'cloudinary',
+    'cloudinary_storage',  # Cloudinary storage backend
     'users',
     'properties',
     'universities',
     'user_messages',
     'reviews',
     'favourites',
-    
 ]
 
 # Site ID required for django-allauth
@@ -135,40 +140,35 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# DigitalOcean Spaces Configuration (S3-Compatible)
-AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL')  # DigitalOcean Spaces endpoint
-AWS_DEFAULT_ACL = 'public-read'
-AWS_LOCATION = 'media/'
-
-# DigitalOcean Spaces specific settings
-AWS_S3_USE_SSL = True
-AWS_S3_VERIFY = True
-AWS_S3_ADDRESSING_STYLE = 'virtual'
-AWS_S3_FILE_OVERWRITE = False
-AWS_QUERYSTRING_AUTH = False
-
-# IMPORTANT: CDN domain for serving files to users
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.nyc3.cdn.digitaloceanspaces.com'
-
-# File Storage Settings
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
-
-# FIXED: Use CDN domain for both static and media URLs
-STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
-
-# Remove these - not needed when using S3 storage
-# STATIC_ROOT = 'media/'
-# MEDIA_ROOT = 'media/'
-
-# DigitalOcean Spaces S3 Storage Configuration
-AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400',
+# Cloudinary Configuration
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': env('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': env('CLOUDINARY_API_KEY'),
+    'API_SECRET': env('CLOUDINARY_API_SECRET'),
 }
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=env('CLOUDINARY_CLOUD_NAME'),
+    api_key=env('CLOUDINARY_API_KEY'),
+    api_secret=env('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
+# File Storage Settings - Using Cloudinary
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+# Static files - You can use Cloudinary for static files too, or keep them local/CDN
+# For static files with Cloudinary (uncomment if you want to use Cloudinary for static files):
+# STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticHashedCloudinaryStorage'
+# STATIC_URL = '/static/'
+
+# For local static files (recommended for CSS/JS):
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Media files URL - Cloudinary will handle the URLs automatically
+MEDIA_URL = '/media/'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -198,9 +198,9 @@ CORS_ALLOW_CREDENTIALS = True
 FRONTEND_URL = env('FRONTEND_URL', default='https://campus-stay.vercel.app')
 
 # Security settings
-SECURE_SSL_REDIRECT=False
-SESSION_COOKIE_SECURE=False
-CSRF_COOKIE_SECURE=False
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 # Logging configuration - ALL LOGS TO CONSOLE
 LOGGING = {
@@ -249,16 +249,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'boto3': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
-        'propagate': True,
-    },
-    'botocore': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
-        'propagate': True,
-    },
+        'cloudinary': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
         '': {
             'handlers': ['console'],
             'level': 'DEBUG',
@@ -271,8 +266,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = env('EMAIL_HOST', default='sandbox.smtp.mailtrap.io')
 EMAIL_PORT = env.int('EMAIL_PORT', default=2525)
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER',default='7e2aacbc250784')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD',default='e8f5e592bbe1b6')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='7e2aacbc250784')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='e8f5e592bbe1b6')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
 
 # Google OAuth Settings
@@ -312,9 +307,9 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 SIMPLE_JWT = {
-     "TOKEN_OBTAIN_SERIALIZER": "users.api.serializers.CustomTokenObtainPairSerializer",
-     "ACCESS_TOKEN_LIFETIME": timedelta(days=40),
-     "REFRESH_TOKEN_LIFETIME": timedelta(days=40),
+    "TOKEN_OBTAIN_SERIALIZER": "users.api.serializers.CustomTokenObtainPairSerializer",
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=40),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=40),
 }
 
 # REST Auth settings
