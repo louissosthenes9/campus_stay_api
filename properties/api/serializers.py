@@ -1,8 +1,11 @@
+import logging
 from rest_framework import serializers
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
+from django.db.models import Avg
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from properties.models import Properties, PropertyAmenity, PropertyMedia, PropertyNearByPlaces, NearByPlaces, Amenity
+from reviews.models import PropertyReviews  # Import the PropertyReviews model
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from typing import List, Optional
@@ -84,6 +87,16 @@ class PropertyNearByPlacesSerializer(serializers.ModelSerializer):
         fields = ['id', 'place', 'distance', 'walking_time']
 
 
+# Simple review serializer for property details
+class PropertyReviewSerializer(serializers.ModelSerializer):
+    reviewer_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    reviewer_username = serializers.CharField(source='user.username', read_only=True)
+    
+    class Meta:
+        model = PropertyReviews
+        fields = ['id', 'rating', 'comment', 'reviewer_name', 'reviewer_username', 'created_at']
+
+
 class PropertiesSerializer(GeoFeatureModelSerializer):
     # Display fields
     property_type_display = serializers.CharField(source='get_property_type_display', read_only=True)
@@ -94,6 +107,10 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
     amenities = PropertyAmenitySerializer(many=True, read_only=True)
     nearby_places = PropertyNearByPlacesSerializer(many=True, read_only=True)
     media = PropertyMediaSerializer(many=True, read_only=True)
+    
+    # Reviews data
+    reviews = PropertyReviewSerializer(many=True, read_only=True)
+    recent_reviews = serializers.SerializerMethodField()
     
     # Calculated fields
     distance_to_university = serializers.SerializerMethodField()
@@ -133,11 +150,18 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             'images', 'image_thumbnails', 'videos', 'primary_image', 'primary_image_thumbnail',
             'amenity_ids', 'created_at', 'updated_at',
             'is_special_needs', 'view_count', 'last_viewed',
-            'average_rating', 'review_count', 'is_recently_viewed'
+            'average_rating', 'review_count', 'is_recently_viewed',
+            'reviews', 'recent_reviews'
         ]
         extra_kwargs = {
             'location': {'required': False},  # Make location optional for easier testing
         }
+
+    @extend_schema_field(serializers.ListField(child=PropertyReviewSerializer()))
+    def get_recent_reviews(self, obj) -> List[dict]:
+        """Get the 3 most recent reviews for the property"""
+        recent_reviews = obj.reviews.select_related('user').order_by('-created_at')[:3]
+        return PropertyReviewSerializer(recent_reviews, many=True).data
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField()))
     def get_images(self, obj) -> List[str]:
@@ -230,24 +254,24 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
 
     @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_average_rating(self, obj) -> Optional[float]:
-        """Get average rating from reviews."""
-        # Uncomment when you have Review model
-        # if hasattr(obj, 'reviews'):
-        #     avg_rating = obj.reviews.aggregate(Avg('rating'))['rating__avg']
-        #     return round(avg_rating, 1) if avg_rating else None
-        
-        # Temporary fallback using overall_score
-        return obj.overall_score
+        """Get average rating from PropertyReviews."""
+        try:
+            avg_rating = obj.reviews.aggregate(rating_avg=Avg('rating'))['rating_avg']
+            return round(avg_rating, 1) if avg_rating else None
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error calculating average rating: {str(e)}")
+            return None
     
     @extend_schema_field(serializers.IntegerField())
     def get_review_count(self, obj) -> int:
-        """Get total number of reviews."""
-        # Uncomment when you have Review model
-        # if hasattr(obj, 'reviews'):
-        #     return obj.reviews.count()
-        
-        # Temporary fallback
-        return 0
+        """Get total number of PropertyReviews."""
+        try:
+            return obj.reviews.count()
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting review count: {str(e)}")
+            return 0
     
     @extend_schema_field(serializers.BooleanField())
     def get_is_recently_viewed(self, obj) -> bool:
@@ -349,3 +373,93 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
         if value > 120: 
             raise serializers.ValidationError("Lease duration cannot exceed 120 months.")
         return value
+
+
+# Lightweight serializer for property lists (without full review data)
+class PropertiesListSerializer(GeoFeatureModelSerializer):
+    """Lighter version of PropertiesSerializer for list views"""
+    property_type_display = serializers.CharField(source='get_property_type_display', read_only=True)
+    primary_image = serializers.SerializerMethodField()
+    primary_image_thumbnail = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+    distance_to_university = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Properties
+        geo_field = 'location'
+        fields = [
+            'id', 'name', 'title', 'price', 'bedrooms', 'toilets',
+            'address', 'property_type', 'property_type_display',
+            'is_furnished', 'is_available', 'primary_image', 'primary_image_thumbnail',
+            'average_rating', 'review_count', 'distance_to_university',
+            'overall_score', 'created_at'
+        ]
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_primary_image(self, obj) -> Optional[str]:
+        """Get primary image URL"""
+        primary_image = obj.media.filter(media_type='image', is_primary=True).first()
+        if not primary_image:
+            primary_image = obj.media.filter(media_type='image').order_by('display_order', 'created_at').first()
+        
+        if primary_image and primary_image.file:
+            return primary_image.file.url
+        return None
+        
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_primary_image_thumbnail(self, obj) -> Optional[str]:
+        """Get primary image thumbnail URL"""
+        primary_image = obj.media.filter(media_type='image', is_primary=True).first()
+        if not primary_image:
+            primary_image = obj.media.filter(media_type='image').order_by('display_order', 'created_at').first()
+        
+        if primary_image and primary_image.file and hasattr(primary_image.file, 'url'):
+            base_url = primary_image.file.url
+            if 'upload/' in base_url:
+                return base_url.replace('upload/', 'upload/w_300,h_200,c_fill,q_auto,f_auto/')
+            return base_url
+        return None
+
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_average_rating(self, obj) -> Optional[float]:
+        """Get average rating from PropertyReviews."""
+        try:
+            avg_rating = obj.reviews.aggregate(rating_avg=Avg('rating'))['rating_avg']
+            return round(avg_rating, 1) if avg_rating else None
+        except Exception:
+            return None
+    
+    @extend_schema_field(serializers.IntegerField())
+    def get_review_count(self, obj) -> int:
+        """Get total number of PropertyReviews."""
+        try:
+            return obj.reviews.count()
+        except Exception:
+            return 0
+
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_distance_to_university(self, obj) -> Optional[float]:
+        """Calculate distance to user's university (for students only)"""
+        request = self.context.get('request')
+        if not (request and request.user.is_authenticated and getattr(request.user, 'roles', None) == 'student'):
+            return None
+        
+        if not hasattr(request.user, 'student_profile'):
+            return None
+            
+        university = getattr(request.user.student_profile, 'university', None)
+        if not university or not university.location:
+            return None
+        
+        try:
+            distance_obj = Properties.objects.filter(id=obj.id).annotate(
+                dist=Distance('location', university.location)
+            ).values('dist').first()
+            
+            if distance_obj and distance_obj['dist'] is not None:
+                return round(distance_obj['dist'].m / 1000, 2)  # Convert to kilometers
+        except Exception:
+            pass
+        
+        return None
