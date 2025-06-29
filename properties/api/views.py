@@ -2,6 +2,7 @@ from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.measure import D
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
+from .filters import PropertyFilter
 from drf_spectacular.openapi import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 from rest_framework import filters, permissions, status, viewsets
@@ -36,7 +37,17 @@ class ConditionalAuthenticationPermission(permissions.BasePermission):
 
 @extend_schema_view(
     list=extend_schema(
-        description="List all available properties with optional filtering. No authentication required.",
+        description="""List all available properties with advanced filtering. No authentication required.
+        
+        Filtering options:
+        - Price Range: Use min_price and max_price parameters
+        - Multiple Property Types: property_type=apartment,house,condo
+        - Amenities: amenities=1,2,3 (comma-separated list of amenity IDs)
+        - Bedrooms: bedrooms=2 or bedrooms__gte=2 or bedrooms__lte=3
+        - Toilets: toilets=1 or toilets__gte=1 or toilets__lte=2
+        - Electricity Type: electricity_type=Submetered,Shared (comma-separated)
+        - Other: is_furnished, is_special_needs, is_fenced, water_supply
+        """,
         parameters=[
             OpenApiParameter(
                 name="university_id",
@@ -49,6 +60,36 @@ class ConditionalAuthenticationPermission(permissions.BasePermission):
                 type=OpenApiTypes.NUMBER,
                 location=OpenApiParameter.QUERY,
                 description="Maximum distance from university in kilometers (default: 5).",
+            ),
+            OpenApiParameter(
+                name="min_price",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Minimum price filter",
+            ),
+            OpenApiParameter(
+                name="max_price",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Maximum price filter",
+            ),
+            OpenApiParameter(
+                name="property_type",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Comma-separated list of property types to include (e.g., apartment,house,condo)",
+            ),
+            OpenApiParameter(
+                name="amenities",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Comma-separated list of amenity IDs that must ALL be present",
+            ),
+            OpenApiParameter(
+                name="electricity_type",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Comma-separated list of electricity types to include (e.g., Submetered,Shared,Individual)",
             ),
         ],
     ),
@@ -70,9 +111,9 @@ class PropertiesViewSet(viewsets.ModelViewSet):
     permission_classes = [ConditionalAuthenticationPermission]  # Updated permission class
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["property_type", "price", "bedrooms", "toilets", "is_furnished"]
+    filterset_class = PropertyFilter
     search_fields = ["title", "description", "address"]
-    ordering_fields = ["price", "created_at"]
+    ordering_fields = ["price", "created_at", "overall_score"]
     ordering = ["-created_at"]
 
     # Custom Actions

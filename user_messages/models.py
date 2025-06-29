@@ -1,27 +1,49 @@
 from django.db import models
+from django.utils import timezone
+from django.core.validators import MinValueValidator, MaxValueValidator
+from users.models import UserProfile
 
-# Create your models here.
+class EnquiryStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
+    IN_PROGRESS = 'in_progress', 'In Progress'
+    RESOLVED = 'resolved', 'Resolved'
+    CANCELLED = 'cancelled', 'Cancelled'
 
-class Conversation(models.Model):
-    property = models.ForeignKey('properties.Properties', on_delete=models.CASCADE, related_name='user_messages')
-    student = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='student_user_messages')
-    broker = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='broker_user_messages')
+class Enquiry(models.Model):
+    property = models.ForeignKey('properties.Properties', on_delete=models.CASCADE, related_name='enquiries')
+    student = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='enquiries')
+    status = models.CharField(
+        max_length=20, 
+        choices=EnquiryStatus.choices, 
+        default=EnquiryStatus.PENDING
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     
-    def __str__(self):
-        return f"Conversation between {self.student.full_name} and {self.broker.full_name} about {self.property.title}"
     class Meta:
-        unique_together = ('property', 'student', 'broker')
+        verbose_name_plural = "Enquiries"
+        ordering = ['-created_at']
+        unique_together = ('property', 'student')
+    
+    def __str__(self):
+        return f"Enquiry about {self.property.title} by {self.student.user.get_full_name()}"
 
-
-class Message(models.Model):
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='sent_messages')
+class EnquiryMessage(models.Model):
+    enquiry = models.ForeignKey(Enquiry, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='enquiry_messages')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
     
+    class Meta:
+        ordering = ['created_at']
+    
     def __str__(self):
-        return f"Message from {self.sender.full_name} in {self.conversation}"
+        return f"Message from {self.sender.get_full_name()} in enquiry {self.enquiry.id}"
+    
+    def save(self, *args, **kwargs):
+        # Update the enquiry's updated_at timestamp when a new message is added
+        self.enquiry.updated_at = timezone.now()
+        self.enquiry.save()
+        super().save(*args, **kwargs)
