@@ -28,7 +28,7 @@ router.register(r'favourites', FavouritesViewSet, basename='favourites')
 
 urlpatterns = [
     path('api/v1/', include(router.urls)),
-    path('api/v1/', include(user_messages_urls)),
+    path('', include(user_messages_urls)),
     path('api/v1/auth/token/',CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/v1/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v1/auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
