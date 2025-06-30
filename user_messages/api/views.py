@@ -6,7 +6,7 @@ from django.db.models import Q
 from drf_spectacular.utils import extend_schema, OpenApiParameter, extend_schema_view
 from drf_spectacular.types import OpenApiTypes
 
-from .models import Enquiry, EnquiryMessage, EnquiryStatus
+from user_messages.models import Enquiry, EnquiryMessage, EnquiryStatus
 from .serializers import EnquirySerializer, CreateEnquirySerializer, EnquiryMessageSerializer
 
 class IsEnquiryParticipant(permissions.BasePermission):

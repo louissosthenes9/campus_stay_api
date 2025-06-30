@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
-from users.models import UserProfile
+from users.models import User,StudentProfile as UserProfile
 
 class EnquiryStatus(models.TextChoices):
     PENDING = 'pending', 'Pending'

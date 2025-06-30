@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from .models import Enquiry, EnquiryMessage, EnquiryStatus
-from users.api.serializers import UserProfileSerializer
+from user_messages.models import Enquiry, EnquiryMessage, EnquiryStatus
+from users.api.serializers import  StudentProfileSerializer as UserProfileSerializer
 from properties.api.serializers import PropertiesSerializer
 
 class EnquiryMessageSerializer(serializers.ModelSerializer):
