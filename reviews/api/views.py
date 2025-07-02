@@ -1,5 +1,7 @@
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 from reviews.models import PropertyReview
 from .serializers import PropertyReviewSerializer
 
@@ -26,3 +28,9 @@ class PropertyReviewViewSet(viewsets.ModelViewSet):
             raise ValidationError("You have already reviewed this property")
         
         serializer.save(reviewer=self.request.user)
+        
+    @action(detail=False, methods=['get'], url_path='user-reviews/(?P<user_id>[^/.]+)')
+    def user_reviews(self, request, user_id=None):
+        reviews = PropertyReview.objects.filter(reviewer__id=user_id).order_by('-created_at')
+        serializer = self.get_serializer(reviews, many=True)
+        return Response(serializer.data)
