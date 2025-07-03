@@ -4,6 +4,8 @@ from users.models import StudentProfile
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from universities.api.serializers import UniversitySerializer
+from drf_spectacular.utils import extend_schema_field
+from typing import Optional, Dict, Any
 
 User = get_user_model()
 
@@ -19,7 +21,8 @@ class UserSerializer(serializers.ModelSerializer):
                   'date_joined']
         read_only_fields = ['id', 'date_joined']
     
-    def get_student_profile(self, obj):
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_student_profile(self, obj) -> Optional[Dict[str, Any]]:
         """
         Get the student profile data if it exists
         """
