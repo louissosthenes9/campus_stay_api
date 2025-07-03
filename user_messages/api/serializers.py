@@ -36,7 +36,7 @@ class CreateEnquirySerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         message_content = validated_data.pop('message')
-        student_profile = self.context['request'].user.userprofile
+        student_profile = self.context['request'].user.student_profile
         
         # Create the enquiry
         enquiry = Enquiry.objects.create(
