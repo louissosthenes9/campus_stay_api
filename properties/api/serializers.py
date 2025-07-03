@@ -172,15 +172,13 @@ class PropertiesSerializer(GeoFeatureModelSerializer):
             return [img.file.url for img in images if img.file]  # Cloudinary URLs are already absolute
         return [img.file.url for img in images if img.file]  # Fallback
 
+   
     @extend_schema_field(serializers.ListField(child=serializers.URLField()))
     def get_videos(self, obj) -> List[str]:
-        """Get all video URLs"""
-        videos = obj.media.filter(media_type='video').order_by('display_order', 'created_at')
-        request = self.context.get('request')
-        if request:
-            return [request.build_absolute_uri(vid.file.url) for vid in videos if vid.file]
-        return [vid.file.url for vid in videos if vid.file]
-
+         """Get all video URLs"""
+         videos = obj.media.filter(media_type='video').order_by('display_order', 'created_at')
+         # No need for request.build_absolute_uri for Cloudinary
+         return [vid.file.url for vid in videos if vid.file]
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_primary_image(self, obj) -> Optional[str]:
         """Get primary image URL"""
