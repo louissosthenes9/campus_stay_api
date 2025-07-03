@@ -8,16 +8,19 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 User = get_user_model()
 
 class StudentProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(source='user', read_only=True)
     
     class Meta:
         model = StudentProfile
-        fields = ['university', 'course']
+        fields = ['id', 'university', 'course', 'created_at', 'updated_at', 'user']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'user']
         extra_kwargs = {
             'university': {'write_only': True}
         }
 
 class UserSerializer(serializers.ModelSerializer):
     student_profile = StudentProfileSerializer(read_only=True)
+    
     password = serializers.CharField(write_only=True)
     
     class Meta:
