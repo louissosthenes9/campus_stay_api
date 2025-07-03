@@ -20,29 +20,7 @@ class IsEnquiryParticipant(permissions.BasePermission):
         return obj.student.user == request.user
 
 @extend_schema_view(
-    list=extend_schema(
-        description="List all enquiries for the authenticated user (student)",
-        parameters=[
-            OpenApiParameter(
-                name='status',
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description='Filter by status (pending, in_progress, resolved, cancelled)'
-            ),
-            OpenApiParameter(
-                name='is_active',
-                type=OpenApiTypes.BOOL,
-                location=OpenApiParameter.QUERY,
-                description='Filter by active status'
-            ),
-            OpenApiParameter(
-                name='property_id',
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description='Filter by property ID'
-            ),
-        ]
-    ),
+    list=extend_schema(description="List all enquiries"),
     create=extend_schema(description="Create a new enquiry about a property"),
     retrieve=extend_schema(description="Retrieve details of a specific enquiry"),
     update=extend_schema(description="Update an enquiry status"),
@@ -58,31 +36,10 @@ class EnquiryViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        Return enquiries where the authenticated user is the student.
+        Return all enquiries.
         """
-        if not self.request.user.is_authenticated:
-            return Enquiry.objects.none()
-        
         try:
-            queryset = Enquiry.objects.filter(
-                student__user=self.request.user
-            ).select_related('property', 'student').prefetch_related('messages')
-            
-            # Filter by status if provided
-            status_param = self.request.query_params.get('status')
-            if status_param in dict(EnquiryStatus.choices):
-                queryset = queryset.filter(status=status_param)
-            
-            # Filter by property_id if provided
-            property_id = self.request.query_params.get('property_id')
-            if property_id:
-                queryset = queryset.filter(property_id=property_id)
-            
-            # Filter by is_active if provided
-            is_active = self.request.query_params.get('is_active')
-            if is_active is not None:
-                queryset = queryset.filter(is_active=is_active.lower() == 'true')
-            
+            queryset = Enquiry.objects.all().select_related('property', 'student').prefetch_related('messages')
             return queryset.order_by('-updated_at')
         except Exception as e:
             logger.error(f"Error in get_queryset: {str(e)}")
