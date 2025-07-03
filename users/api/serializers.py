@@ -42,7 +42,7 @@ class UserSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 class StudentProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(source='user', read_only=True)
+    user = UserSerializer(read_only=True)
     university_details = UniversitySerializer(source='university', read_only=True)
     
     class Meta:
