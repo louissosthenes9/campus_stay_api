@@ -4,16 +4,18 @@ from django.contrib.auth import get_user_model
 from users.models import StudentProfile
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+from universities.api.serializers import UniversitySerializer
 
 User = get_user_model()
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(source='user', read_only=True)
+    university_details = UniversitySerializer(source='university', read_only=True)
     
     class Meta:
         model = StudentProfile
-        fields = ['id', 'university', 'course', 'created_at', 'updated_at', 'user']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'user']
+        fields = ['id', 'university', 'university_details', 'course', 'created_at', 'updated_at', 'user']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'user', 'university_details']
         extra_kwargs = {
             'university': {'write_only': True}
         }
